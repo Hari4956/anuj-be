@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
   createTileProduct,
-  searchProducts,
+  getAllTileProducts,
   ActiveProductById,
 } = require("../../controller/productsDetailsController/productsDetails");
 const upload = require("../../middleware/multer");
@@ -29,6 +29,7 @@ router.put(
   upload.fields([{ name: "images", maxCount: 10 }]),
   updateTileProduct
 );
+router.post("/getallproducts", getAllTileProducts);
 router.put("/updateMultiple", updateMultipleProducts);
 router.put("/active-product/:id", ActiveProductById);
 router.put("/:id", upload.array("images"), updateTileProduct);

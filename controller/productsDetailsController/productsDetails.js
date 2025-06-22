@@ -1,4 +1,5 @@
 const TileProduct = require("../../models/productsDetailsModel/productsDetails");
+const mongoose = require("mongoose");
 
 const createTileProduct = async (req, res) => {
   console.log(req.body);
@@ -114,6 +115,35 @@ const getTileProductById = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching product by ID:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      details: error.message,
+    });
+  }
+};
+
+const getAllTileProducts = async (req, res) => {
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No product IDs provided.",
+      });
+    }
+
+    const objectIds = ids.map(id => new mongoose.Types.ObjectId(id));
+
+    const products = await TileProduct.find({ _id: { $in: objectIds } });
+
+    res.status(200).json({
+      success: true,
+      data: products,
+    });
+  } catch (error) {
+    console.error("Error fetching products:", error);
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -519,7 +549,7 @@ const updateTileProduct = async (req, res) => {
 const updateMultipleProducts = async (req, res) => {
   try {
     console.log(req.body);
-    const { ids, discount, status } = req.body;
+    const { ids, discount, status, Trending, Type } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
       return res
@@ -587,6 +617,7 @@ const searchProducts = async (req, res) => {
 module.exports = {
   createTileProduct,
   filtergetProducts,
+  getAllTileProducts,
   deleteTileProductById,
   updateTileProduct,
   updateMultipleProducts,
