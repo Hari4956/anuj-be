@@ -19,6 +19,7 @@ const Banner = require("./routes/Banner/Banner");
 const Awards = require("./routes/AwardsRoutes/AwardRoutes");
 const AboutVideo = require("./routes/AboutVideoRouter/AboutVideoRoutes");
 const GetQuote = require("./routes/GetQuoteRoutes/GetQuoteRoutes");
+const Addcard = require("./routes/AddCardRoutes/AddCardRoutes");
 const { createDefaultUser } = require("./models/auth/UserModel");
 dotenv.config();
 
@@ -71,6 +72,9 @@ app.use("/api/aboutVideo", AboutVideo);
 
 // getQuote
 app.use("/api/getQuote", GetQuote);
+
+// addCard
+app.use("/api/addtoCart", Addcard);
 
 // MongoDB connection setup
 const connectDB = async () => {
