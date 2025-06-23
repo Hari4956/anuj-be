@@ -28,7 +28,7 @@ const app = express();
 // Middleware
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://friendly-piroshki-7d3963.netlify.app"],
+    origin: ["http://localhost:5173", "https://friendly-piroshki-7d3963.netlify.app", "https://wondrous-duckanoo-03bdf1.netlify.app"],
     credentials: true,
   })
 );
