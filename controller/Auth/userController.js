@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const login = async (req, res) => {
   const { username, password } = req.body;
 
-  console.log("Request Data:", { username, password }); // ✅ Log incoming data
+  console.log("Request Data:", { username, password });
 
   try {
     const user = await User.findOne({ username });
@@ -18,7 +18,6 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
     createJwt(res, user);
-    // ✅ Generate JWT Token
   } catch (error) {
     console.error("❌ Error in login:", error.message);
     res.status(500).json({ message: error.message });

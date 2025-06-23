@@ -28,10 +28,11 @@ const app = express();
 // Middleware
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://friendly-piroshki-7d3963.netlify.app"],
     credentials: true,
   })
 );
+
 app.use(cookieParser());
 app.use(express.json());
 

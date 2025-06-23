@@ -5,7 +5,7 @@ const { jwtVerification } = require('../../middleware/JwtVerfication');
 const router = express.Router();
 
 router.post('/login', login);
-router.get('/logout',logout)
-router.get('/profile',jwtVerification, userProfile)
+router.get('/logout', logout)
+router.get('/profile', jwtVerification, userProfile)
 
 module.exports = router;
