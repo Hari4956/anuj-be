@@ -22,9 +22,32 @@ const GetQuote = require("./routes/GetQuoteRoutes/GetQuoteRoutes");
 const Addcard = require("./routes/AddCardRoutes/AddCardRoutes");
 const { createDefaultUser } = require("./models/auth/UserModel");
 dotenv.config();
-
+const path = require("path");
+const fs = require("fs");
 const app = express();
 
+
+// Serve .gz files with proper headers using a custom handler
+app.use((req, res, next) => {
+  if (req.url.endsWith(".framework.js.gz")) {
+    res.set("Content-Encoding", "gzip");
+    res.set("Content-Type", "application/javascript");
+  } else if (req.url.endsWith(".data.gz")) {
+    res.set("Content-Encoding", "gzip");
+    res.set("Content-Type", "application/octet-stream");
+  } else if (req.url.endsWith(".wasm.gz")) {
+    res.set("Content-Encoding", "gzip");
+    res.set("Content-Type", "application/wasm");
+  }
+  next();
+});
+
+// Serve static files
+app.use("/Bedroom_Build", express.static(path.join(__dirname, "builds/Bedroom_Build")));
+app.use("/Elevation_and_Parking_Build", express.static(path.join(__dirname, "builds/Elevation_and_Parking_Build")));
+app.use("/Kitchen_Build", express.static(path.join(__dirname, "builds/Kitchen_Build")));
+app.use("/Living_Room_Build", express.static(path.join(__dirname, "builds/living_room_Build")));
+app.use("/Restroom_Build", express.static(path.join(__dirname, "builds/Restroom_build")));
 // Middleware
 app.use(
   cors({
@@ -32,6 +55,7 @@ app.use(
     credentials: true,
   })
 );
+
 
 app.use(cookieParser());
 app.use(express.json());
