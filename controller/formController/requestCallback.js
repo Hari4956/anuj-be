@@ -10,10 +10,11 @@ const createRequestCallback = async (req, res) => {
     }
 
     // Phone number validation (Indian format - 10 digits, starts with 6-9)
-    const phoneRegex = /^[6-9]\d{9}$/;
+    const phoneRegex = /^\d{10}$/;
     if (!phoneRegex.test(phoneNumber)) {
-      return res.status(400).json({ error: "Invalid phone number format. It must be 10 digits and start with 6-9." });
+      return res.status(400).json({ error: "Invalid phone number format. It must be exactly 10 digits." });
     }
+
 
     // Save to DB
     const newRequest = new RequestCallback({ fullName, phoneNumber, location });
@@ -68,7 +69,7 @@ const deleteRequestCallbackById = async (req, res) => {
 module.exports = {
   createRequestCallback,
   getAllRequestCallbacks,
-   updateRequestCallbackById,
+  updateRequestCallbackById,
   deleteRequestCallbackById
 };
 
