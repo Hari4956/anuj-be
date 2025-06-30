@@ -4,7 +4,7 @@ const ServiceAndSupportSchema = new mongoose.Schema(
   {
     fullName: { type: String, required: true },
     phoneNumber: { type: String, required: true },
-    email: { type: String, required: true },
+    location: { type: String, required: true },
     issue: { type: String, required: true },
     voiceRecord: { type: String },
   },

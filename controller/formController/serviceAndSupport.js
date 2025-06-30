@@ -2,16 +2,10 @@ const ServiceAndSupport = require("../../models/formModel/serviceAndSupport");
 
 const createSupportRequest = async (req, res) => {
   try {
-    const { fullName, phoneNumber, email, issue } = req.body;
+    const { fullName, phoneNumber, location, issue } = req.body;
     const voiceRecord = req.file ? req.file.path : null;
 
     console.log("Voice Record Cloudinary URL:", voiceRecord);
-
-    // Email regex validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.(com|net|org|in)$/i;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ success: false, message: "Invalid email format" });
-    }
 
     // Phone number regex validation (10 digits)
     const phoneRegex = /^\d{10}$/;
@@ -22,7 +16,7 @@ const createSupportRequest = async (req, res) => {
     const newRequest = new ServiceAndSupport({
       fullName,
       phoneNumber,
-      email,
+      location,
       issue,
       voiceRecord
     });
@@ -65,17 +59,8 @@ const deleteSupportRequest = async (req, res) => {
 
 const updateSupportRequest = async (req, res) => {
   try {
-    const { fullName, phoneNumber, email, issue } = req.body;
+    const { fullName, phoneNumber, location, issue } = req.body;
     const updateData = {};
-
-    // Email validation using regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.(com|net|org|in)$/i;
-    if (email) {
-      if (!emailRegex.test(email)) {
-        return res.status(400).json({ error: "Invalid email format" });
-      }
-      updateData.email = email;
-    }
 
     // Phone number validation (exactly 10 digits)
     const phoneRegex = /^\d{10}$/;
@@ -90,8 +75,8 @@ const updateSupportRequest = async (req, res) => {
 
     if (fullName) updateData.fullName = fullName;
     if (issue) updateData.issue = issue;
+    if (location) updateData.location = location;
 
-    // Handle voice record update
     if (req.file) {
       updateData.voiceRecord = req.file.path;
     }

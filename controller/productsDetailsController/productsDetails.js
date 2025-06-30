@@ -45,7 +45,8 @@ const createTileProduct = async (req, res) => {
       };
     }
 
-    const trending = req.body.Trending === "true" || req.body.Trending === true;
+    const trending =
+      req.body.Trending === "Trending" || req.body.Trending === Trending;
 
     let featureImage = [];
     try {
@@ -134,7 +135,7 @@ const getAllTileProducts = async (req, res) => {
       });
     }
 
-    const objectIds = ids.map(id => new mongoose.Types.ObjectId(id));
+    const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
 
     const products = await TileProduct.find({ _id: { $in: objectIds } });
 
@@ -259,10 +260,8 @@ const filtergetProducts = async (req, res) => {
     }
 
     // Filter by Trending
-    if (Trending === "true") {
-      matchStage.Trending = true;
-    } else if (Trending === "false") {
-      matchStage.Trending = false;
+    if (Trending === "Trending") {
+      matchStage.Trending = Trending;
     }
 
     if (Object.keys(matchStage).length > 0) {

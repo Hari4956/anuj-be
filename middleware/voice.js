@@ -12,10 +12,10 @@ const allowedMimeTypes = [
   'audio/ogg',
   'audio/x-ms-wma',
   'audio/aac',
-  'video/mpeg',           // ✅ Add this
+  'video/mpeg',
+  'video/webm',           // Explicitly allow video/webm for proper playback
   'application/octet-stream' // optional fallback
 ];
-
 
 const fileFilter = (req, file, cb) => {
   console.log("Uploaded file:", {
@@ -35,7 +35,7 @@ const storage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
     folder: 'voice_records',
-    resource_type: 'auto',
+    resource_type: 'video',  // Ensures .webm uploads are treated properly for playback
     public_id: `voice_${Date.now()}`,
   }),
 });

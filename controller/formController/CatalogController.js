@@ -1,0 +1,72 @@
+const path = require("path");
+const fs = require("fs");
+const Catalog = require("../../models/formModel/CatalogModel");
+
+const addCatalog = async (req, res) => {
+  try {
+    const { fullName, phoneNumber, location } = req.body;
+    const catalog = new Catalog({ fullName, phoneNumber, location });
+    await catalog.save();
+
+    const pdfPath = path.join(__dirname, "../../public/catalog.pdf");
+
+    // Check if file exists before streaming
+    if (!fs.existsSync(pdfPath)) {
+      return res.status(404).json({
+        success: false,
+        message: "PDF file not found",
+      });
+    }
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": "attachment; filename=catalogue.pdf",
+    });
+
+    const fileStream = fs.createReadStream(pdfPath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error("Download error:", error.message); // helpful for debugging
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+const getCatalog = async (req, res) => {
+  try {
+    const catalog = await Catalog.find();
+    res.status(200).json({
+      success: true,
+      message: "Catalog fetched successfully",
+      data: catalog,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+const deleteCatalog = async (req, res) => {
+  try {
+    const catalog = await Catalog.findByIdAndDelete(req.params.id);
+    res.status(200).json({
+      success: true,
+      message: "Catalog deleted successfully",
+      data: catalog,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = { addCatalog, getCatalog, deleteCatalog };
