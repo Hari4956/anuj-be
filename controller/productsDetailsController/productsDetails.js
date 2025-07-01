@@ -36,14 +36,11 @@ const createTileProduct = async (req, res) => {
       console.warn("Failed to parse details:", e);
     }
 
-    let size = {};
-    if (req.body.size) {
-      size = {
-        width: req.body.size.width,
-        height: req.body.size.height,
-        unit: "mm",
-      };
-    }
+    let size = {
+      width: parseInt(req.body.width),
+      height: parseInt(req.body.height),
+      unit: "mm",
+    };
 
     const trending =
       req.body.Trending === "Trending" || req.body.Trending === Trending;
@@ -56,6 +53,7 @@ const createTileProduct = async (req, res) => {
     } catch (e) {
       console.warn("Failed to parse featureImage:", e);
     }
+    const appliedimageUrl = req.files?.appliedimage?.[0]?.path || "";
 
     const product = new TileProduct({
       productID: req.body.productID,
@@ -71,6 +69,10 @@ const createTileProduct = async (req, res) => {
       applications,
       images,
       featureImage,
+      PriceType: req.body.PriceType,
+      description: req.body.description,
+      productParticulars: req.body.productParticulars,
+      appliedimage: appliedimageUrl,
     });
 
     await product.save();
