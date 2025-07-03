@@ -30,9 +30,8 @@ const createEvent = async (req, res) => {
 
 const getAllEvents = async (req, res) => {
   try {
-
-    const page = parserInt(req.query.page) || 1;
-    const limit = parserInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
     if (page <= 0 || limit <= 0) {
       return res.status(400).json({ error: "Page and limit must be positive numbers" });
