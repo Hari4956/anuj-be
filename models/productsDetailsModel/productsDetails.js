@@ -30,9 +30,14 @@ const tileProductSchema = new mongoose.Schema(
       },
     ],
     featureImage: [{ type: String }],
-    PriceType: { type: String },
-    appliedimage: { type: String },
-    description: { type: String },
+    priceType: { type: String },
+    appliedimage: [
+      {
+        thumbnail: { type: String },
+        public_id: { type: String }, 
+        url: { type: String },
+      }
+    ], description: { type: String },
     productParticulars: { type: String },
   },
 

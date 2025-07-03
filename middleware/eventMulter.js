@@ -21,11 +21,7 @@ const storage = new CloudinaryStorage({
 const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 },
-}).fields([
-  { name: "mainImage", maxCount: 1 },
-  { name: "subImages", maxCount: 10 },
-  { name: "shopImage", maxCount: 10 },
-]);
+}).any();
 
 module.exports = (req, res, next) => {
   upload(req, res, (err) => {

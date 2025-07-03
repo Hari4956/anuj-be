@@ -37,11 +37,36 @@ const addCatalog = async (req, res) => {
 
 const getCatalog = async (req, res) => {
   try {
-    const catalog = await Catalog.find();
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    if (page <= 0 || limit <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Page and limit must be positive numbers",
+      });
+    }
+
+    const skip = (page - 1) * limit;
+
+    const catalog = await Catalog.find()
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    const total = await Catalog.countDocuments();
+
     res.status(200).json({
       success: true,
       message: "Catalog fetched successfully",
       data: catalog,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     res.status(500).json({

@@ -30,8 +30,33 @@ const createEvent = async (req, res) => {
 
 const getAllEvents = async (req, res) => {
   try {
-    const events = await Event.find().sort({ createdAt: -1 });
-    res.status(200).json(events);
+
+    const page = parserInt(req.query.page) || 1;
+    const limit = parserInt(req.query.limit) || 10;
+
+    if (page <= 0 || limit <= 0) {
+      return res.status(400).json({ error: "Page and limit must be positive numbers" });
+    }
+
+    const skip = (page - 1) * limit;
+
+    const events = await Event.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Event.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      data: events,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -40,9 +65,7 @@ const getAllEvents = async (req, res) => {
 const updateEventById = async (req, res) => {
   try {
     const { id } = req.params;
-    const body = req.body;
-
-
+    const body = req.body
 
     if (!body || !body.fullName || !body.phoneNumber || !body.email) {
       return res.status(400).json({ error: "All fields are required" });

@@ -21,6 +21,7 @@ const AboutVideo = require("./routes/AboutVideoRouter/AboutVideoRoutes");
 const GetQuote = require("./routes/GetQuoteRoutes/GetQuoteRoutes");
 const Addcard = require("./routes/AddCardRoutes/AddCardRoutes");
 const catalog = require("./routes/formRoute/CatalogRoutes");
+const TalkSpecialist = require("./routes/formRoute/TalkSpecialist");
 const { createDefaultUser } = require("./models/auth/UserModel");
 dotenv.config();
 const path = require("path");
@@ -76,8 +77,8 @@ app.use(
 );
 
 app.use(cookieParser());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
 // User routes
 app.use("/api/user", userRouter);
 
@@ -107,6 +108,7 @@ app.use("/api/requestCallback", requestCallback);
 app.use("/api/eventform", eventForm);
 app.use("/api/serviceAndSupportForm", serviceAndSupport);
 app.use("/api/catalog", catalog);
+app.use("/api/talkSpecialist", TalkSpecialist);
 
 //awards
 app.use("/api/awards", Awards);

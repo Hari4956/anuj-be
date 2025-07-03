@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 
 const createTileProduct = async (req, res) => {
   console.log(req.body);
+  console.log(req.body.Trending);
 
   try {
     const filesArray = req.files?.images || [];
@@ -36,12 +37,6 @@ const createTileProduct = async (req, res) => {
       console.warn("Failed to parse details:", e);
     }
 
-    let size = {
-      width: parseInt(req.body.width),
-      height: parseInt(req.body.height),
-      unit: "mm",
-    };
-
     const trending =
       req.body.Trending === "Trending" || req.body.Trending === Trending;
 
@@ -54,6 +49,19 @@ const createTileProduct = async (req, res) => {
       console.warn("Failed to parse featureImage:", e);
     }
     const appliedimageUrl = req.files?.appliedimage?.[0]?.path || "";
+
+    const width = parseInt(req.body.size?.width);
+    const height = parseInt(req.body.size?.height);
+    const unit = req.body.size?.unit || "mm";
+
+    console.log("Received width:", width);
+    console.log("Received height:", height);
+
+    if (isNaN(width) || isNaN(height)) {
+      return res.status(400).json({ error: "Width and Height must be valid numbers." });
+    }
+
+    const size = { width, height, unit };
 
     const product = new TileProduct({
       productID: req.body.productID,
@@ -378,6 +386,7 @@ const deleteTileProductById = async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
 const ActiveProductById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -432,16 +441,20 @@ const ActiveProductById = async (req, res) => {
 };
 
 const updateTileProduct = async (req, res) => {
+  console.log(req.body);
   try {
     const { id } = req.params;
-    console.log("par", req.params);
     let product = await TileProduct.findById(id);
+
     if (!product) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found" });
+      return res.status(404).json({ success: false, message: "Product not found" });
     }
 
+    if (typeof req.body.appliedimage === "string") {
+      product.appliedimage = JSON.parse(req.body.appliedimage);
+    }
+
+    // Handle gallery images upload
     if (req.files["images"]) {
       const images = req.files["images"].map((file) => ({
         thumbnail: file.path,
@@ -451,23 +464,44 @@ const updateTileProduct = async (req, res) => {
       product.images = images;
     }
 
-    if (req.files["featureImage"]) {
-      const featureFile = req.files["featureImage"][0];
-      product.featureImage = {
-        thumbnail: featureFile.path,
-        public_id: featureFile.filename,
-        url: featureFile.secure_url || featureFile.url,
-      };
+    if (req.files["appliedimage"]) {
+      const appliedimage = req.files["appliedimage"].map(file => ({
+        thumbnail: file.path,
+        public_id: file.filename,
+        url: file.secure_url || file.url || file.path,
+      }));
+      product.appliedimage = appliedimage;
+    } else if (req.body.appliedimageMeta) {
+      product.appliedimage = JSON.parse(req.body.appliedimageMeta);
     }
 
-    // Update applications
+    // Handle feature images upload
+    if (req.files["featureImage"]) {
+      const featureFiles = req.files["featureImage"];
+      product.featureImage = featureFiles.map((file) => ({
+        thumbnail: file.path,
+        public_id: file.filename,
+        url: file.secure_url || file.url,
+      }));
+    } else if (req.body.featureImage) {
+      try {
+        const parsed = Array.isArray(req.body.featureImage)
+          ? req.body.featureImage
+          : JSON.parse(req.body.featureImage);
+        product.featureImage = parsed;
+      } catch (e) {
+        console.warn("Failed to parse featureImage:", e);
+      }
+    }
+
+    // Parse and update applications
     if (req.body.applications) {
       product.applications = Array.isArray(req.body.applications)
         ? req.body.applications
         : req.body.applications.split(",").map((app) => app.trim());
     }
 
-    // Parse details safely
+    // Parse and update details
     if (req.body.details) {
       try {
         product.details = JSON.parse(req.body.details);
@@ -476,13 +510,12 @@ const updateTileProduct = async (req, res) => {
       }
     }
 
-    console.log(req.body.width, req.body.height);
+    // Parse and update size
     if (req.body.size) {
       try {
         const sizeObj = JSON.parse(req.body.size);
         const width = parseInt(sizeObj.width, 10);
         const height = parseInt(sizeObj.height, 10);
-
         if (!isNaN(width) && !isNaN(height)) {
           product.size = {
             width,
@@ -495,32 +528,23 @@ const updateTileProduct = async (req, res) => {
       }
     }
 
-    // Update Trending (convert to Boolean)
+    // Convert and update boolean Trending
     if (req.body.Trending !== undefined) {
-      product.Trending =
-        req.body.Trending === "true" || req.body.Trending === true;
+      product.Trending = req.body.Trending === "true" || req.body.Trending === true;
     }
 
-    if (req.body.featureImage) {
-      try {
-        if (Array.isArray(req.body.featureImage)) {
-          product.featureImage = req.body.featureImage;
-        } else {
-          product.featureImage = JSON.parse(req.body.featureImage);
-        }
-      } catch (e) {
-        console.warn("Failed to parse featureImage:", e);
-      }
-    }
-
-    // Update other fields
+    // Update other direct fields
     product.productID = req.body.productID || product.productID;
     product.Type = req.body.Type || product.Type;
     product.name = req.body.name || product.name;
     product.series = req.body.series || product.series;
     product.availability = req.body.availability || product.availability;
-    product.originalPrice = req.body.originalPrice || product.originalPrice;
-    product.discount = req.body.discount || product.discount;
+    product.originalPrice = parseFloat(req.body.originalPrice) || product.originalPrice;
+    product.discount = parseFloat(req.body.discount) || product.discount;
+    product.priceType = req.body.priceType || product.priceType;
+    product.description = req.body.description || product.description;
+    product.productParticulars = req.body.productParticulars || product.productParticulars;
+    product.active = req.body.active || product.active;
 
     await product.save();
 
@@ -530,8 +554,7 @@ const updateTileProduct = async (req, res) => {
       message: "Product updated successfully",
     });
   } catch (err) {
-    console.error("Error updating product:", err);
-
+    console.error("Error updating product:", err.message, err.stack);
     if (err.name === "ValidationError") {
       return res.status(400).json({
         success: false,

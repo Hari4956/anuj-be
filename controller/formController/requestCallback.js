@@ -4,12 +4,10 @@ const createRequestCallback = async (req, res) => {
   try {
     const { fullName, phoneNumber, location } = req.body;
 
-    // Basic required field validation
     if (!fullName || !phoneNumber || !location) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
-    // Phone number validation (Indian format - 10 digits, starts with 6-9)
     const phoneRegex = /^\d{10}$/;
     if (!phoneRegex.test(phoneNumber)) {
       return res.status(400).json({ error: "Invalid phone number format. It must be exactly 10 digits." });
@@ -29,8 +27,34 @@ const createRequestCallback = async (req, res) => {
 
 const getAllRequestCallbacks = async (req, res) => {
   try {
-    const callbacks = await RequestCallback.find().sort({ createdAt: -1 });
-    res.status(200).json(callbacks);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    if (page <= 0 || limit <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Page and limit must be positive numbers"
+      });
+    }
+
+    const skip = (page - 1) * limit;
+
+    const callbacks = await RequestCallback.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await RequestCallback.countDocuments();
+    res.status(200).json({
+      success: true,
+      data: callbacks,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

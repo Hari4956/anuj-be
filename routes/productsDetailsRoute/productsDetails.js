@@ -19,20 +19,25 @@ router.post(
   upload.fields([
     { name: "featureImage", maxCount: 10 },
     { name: "images", maxCount: 10 },
+    { name: "appliedimage", maxCount: 5 },
   ]),
   createTileProduct
 );
 
 router.get("/filtergetproducts", filtergetProducts);
-router.put(
-  "/update-multiple/:id",
-  upload.fields([{ name: "images", maxCount: 10 }]),
-  updateTileProduct
-);
+// router.put(
+//   "/update-multiple/:id",
+//   upload.fields([{ name: "images", maxCount: 10 }]),
+//   updateTileProduct
+// );
 router.post("/getallproducts", getAllTileProducts);
 router.put("/updateMultiple", updateMultipleProducts);
 router.put("/active-product/:id", ActiveProductById);
-router.put("/:id", upload.array("images"), updateTileProduct);
+router.put("/:id", upload.fields([
+  { name: "images" },
+  { name: "appliedimage", maxCount: 1 },
+  { name: "featureImage" }
+]), updateTileProduct);
 router.get("/getproduct/:id", getTileProductById);
 router.delete("/:id", deleteTileProductById);
 

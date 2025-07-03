@@ -39,8 +39,33 @@ const createSupportRequest = async (req, res) => {
 
 const getAllSupportRequests = async (req, res) => {
   try {
-    const requests = await ServiceAndSupport.find().sort({ createdAt: -1 });
-    res.status(200).json(requests);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    if (page <= 0 || limit <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Page and limit must be positive numbers"
+      });
+    }
+    const skip = (page - 1) * limit;
+    const requests = await ServiceAndSupport.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ServiceAndSupport.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      data: requests,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch requests" });
   }

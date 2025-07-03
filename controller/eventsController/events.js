@@ -1,6 +1,7 @@
 const EventPage = require("../../models/eventsModel/events");
 
 const createEvent = async (req, res) => {
+  console.log(req.body);
   try {
     // Trim whitespace from field names
     const bodyFields = {};
@@ -13,21 +14,20 @@ const createEvent = async (req, res) => {
       place,
       para,
       date,
-      event,
       tableOfContent,
       subContents,
     } = bodyFields;
 
     console.log("Received body fields:", bodyFields);
 
-    // Handle mainImage
-    const mainImage = req.files?.mainImage?.[0]?.path || null;
+    // const mainImage = req.files?.mainImage?.[0]?.path || null;
 
     // Handle subImages
     const subImages = req.files?.subImages?.map((file) => file.path) || [];
 
     // Validate required fields
-    if (!mainHeading || !mainImage || !place || !para || !date || !event) {
+
+    if (!mainHeading || !place || !para || !date) {
       return res.status(400).json({
         success: false,
         error: "All main fields are required.",
@@ -97,25 +97,12 @@ const createEvent = async (req, res) => {
       }
     }
 
-    // Validate that if there are subImages, there must be matching subContents
-    if (
-      subImages.length > 0 &&
-      processedSubContents.length !== subImages.length
-    ) {
-      return res.status(400).json({
-        success: false,
-        error: "Number of subImages must match number of subContents",
-      });
-    }
-
-    // Create and save the new event
     const newEvent = new EventPage({
       mainHeading,
-      mainImage,
+      // mainImage,
       place,
       para,
       date,
-      event,
       tableOfContent: parsedTableOfContent,
       subContents: processedSubContents,
     });
@@ -210,163 +197,61 @@ const deleteEvent = async (req, res) => {
 };
 
 const updateEvent = async (req, res) => {
+  const { id } = req.params;
+  console.log(req.body);
+  let { mainHeading, place, para, date, tableOfContent, subContents } = req.body;
+
   try {
-    const { id } = req.params;
-    console.log("Updating event with ID:", id);
-    if (!req.body) {
-      return res.status(400).json({
-        success: false,
-        error: "Request body is missing.",
-      });
-    }
-
-    // Trim all field names in the request body
-    const bodyFields = {};
-    Object.keys(req.body).forEach((key) => {
-      bodyFields[key.trim()] = req.body[key];
-    });
-
-    const {
-      mainHeading,
-      place,
-      para,
-      date,
-      event,
-      tableOfContent,
-      subContents,
-    } = bodyFields;
-
-    const mainImage = req.files?.mainImage?.[0]?.path || null;
-    const subImages = req.files?.subImages?.map((file) => file.path) || [];
-
-    // Check if the event exists
     const existingEvent = await EventPage.findById(id);
     if (!existingEvent) {
-      return res.status(404).json({
-        success: false,
-        error: "Event not found.",
-      });
+      return res.status(404).json({ message: "Event not found" });
     }
 
-    // Update main fields if provided
-    if (mainHeading !== undefined) existingEvent.mainHeading = mainHeading;
-    if (place !== undefined) existingEvent.place = place;
-    if (para !== undefined) existingEvent.para = para;
-    if (date !== undefined) existingEvent.date = date;
-    if (event !== undefined) existingEvent.event = event;
-    if (mainImage) existingEvent.mainImage = mainImage;
+    // Parse JSON strings if needed
+    if (typeof subContents === "string") subContents = JSON.parse(subContents);
+    if (typeof tableOfContent === "string") tableOfContent = JSON.parse(tableOfContent);
 
-    let parsedTableOfContent = existingEvent.tableOfContent || [];
-    if (tableOfContent !== undefined) {
-      try {
-        parsedTableOfContent =
-          typeof tableOfContent === "string"
-            ? JSON.parse(tableOfContent)
-            : tableOfContent;
+    // Update subContents and handle image replacement
+    const updatedSubContents = subContents.map((sub, index) => {
+      const existingSub = existingEvent.subContents[index] || {};
+      const uploadedImages = (req.files || [])
+        .filter(file => file.fieldname === `subImages_${index}`)
+        .map(file => file.path);
 
-        if (!Array.isArray(parsedTableOfContent)) {
-          return res.status(400).json({
-            success: false,
-            error: "tableOfContent must be an array",
-          });
-        }
+      return {
+        ...existingSub,
+        ...sub,
+        subImages: uploadedImages.length > 0 ? uploadedImages : existingSub.subImages || [],
+      };
+    });
 
-        existingEvent.tableOfContent = parsedTableOfContent;
-      } catch (e) {
-        console.error("Error parsing tableOfContent:", e);
-        return res.status(400).json({
-          success: false,
-          error: "Invalid tableOfContent format.",
-        });
-      }
+    // Update text fields
+    existingEvent.mainHeading = mainHeading || existingEvent.mainHeading;
+    existingEvent.place = place || existingEvent.place;
+    existingEvent.para = para || existingEvent.para;
+    existingEvent.date = date || existingEvent.date;
+    existingEvent.tableOfContent = tableOfContent || existingEvent.tableOfContent;
+    existingEvent.subContents = updatedSubContents;
+
+    // Replace main image if uploaded
+    const mainImgFile = (req.files || []).find(f => f.fieldname === "mainImage");
+    if (mainImgFile) {
+      existingEvent.mainImage = mainImgFile.path;
     }
 
-    // Process subContents
-    if (subContents !== undefined) {
-      try {
-        const parsedSubContents =
-          typeof subContents === "string"
-            ? JSON.parse(subContents)
-            : subContents;
-
-        if (!Array.isArray(parsedSubContents)) {
-          return res.status(400).json({
-            success: false,
-            error: "subContents must be an array",
-          });
-        }
-
-        if (parsedTableOfContent.length !== parsedSubContents.length) {
-          return res.status(400).json({
-            success: false,
-            error: `Number of subContents (${parsedSubContents.length}) must match number of tableOfContent (${parsedTableOfContent.length}).`,
-          });
-        }
-
-        const updatedSubContents = [];
-
-        parsedSubContents.forEach((subContent, index) => {
-          const subContentImages = subImages[index]
-            ? [subImages[index]]
-            : subContent.subImages || [];
-
-          if (!subContent.pictureHeading || !subContent.pictureDescription) {
-            throw new Error(
-              "Each subContent must have pictureHeading and pictureDescription"
-            );
-          }
-
-          if (subContent._id) {
-            const existingSub = existingEvent.subContents.find(
-              (sc) => sc._id.toString() === subContent._id
-            );
-
-            if (existingSub) {
-              updatedSubContents.push({
-                ...existingSub.toObject(),
-                pictureHeading: subContent.pictureHeading,
-                pictureDescription: subContent.pictureDescription,
-                subImages: subContentImages.length
-                  ? subContentImages
-                  : existingSub.subImages,
-              });
-            }
-          } else {
-            updatedSubContents.push({
-              pictureHeading: subContent.pictureHeading,
-              pictureDescription: subContent.pictureDescription,
-              subImages: subContentImages,
-            });
-          }
-        });
-
-        existingEvent.subContents = updatedSubContents;
-      } catch (e) {
-        console.error("Error parsing subContents:", e);
-        return res.status(400).json({
-          success: false,
-          error: e.message || "Invalid subContents format.",
-        });
-      }
-    }
-
-    // Save the updated event
     const updatedEvent = await existingEvent.save();
 
-    return res.status(200).json({
-      success: true,
+    res.status(200).json({
       message: "Event updated successfully",
-      data: updatedEvent,
+      event: updatedEvent,
     });
+
   } catch (error) {
-    console.error("Full error:", error);
-    return res.status(500).json({
-      success: false,
-      error: "Internal Server Error",
-      details: error.message,
-    });
+    console.error("Update Error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 module.exports = {
   createEvent,

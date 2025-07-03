@@ -18,6 +18,9 @@ const storage = new CloudinaryStorage({
     } else if (file.fieldname === 'images') {
       folder = 'tilesDetails/galleryImages';
     }
+    else if (file.fieldname === 'appliedimage') {
+      folder = 'tilesDetails/appliedimage';
+    }
 
     return {
       folder: folder,
