@@ -40,6 +40,7 @@ const getCatalog = async (req, res) => {
 
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const { fromDate, toDate } = req.query;
 
     if (page <= 0 || limit <= 0) {
       return res.status(400).json({
@@ -50,12 +51,26 @@ const getCatalog = async (req, res) => {
 
     const skip = (page - 1) * limit;
 
-    const catalog = await Catalog.find()
+    const matchStage = {};
+
+    // Date Filter Logic
+    if (fromDate || toDate) {
+      const dateFilter = {};
+      if (fromDate) dateFilter.$gte = new Date(fromDate);
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999); // Include full day for 'toDate'
+        dateFilter.$lte = to;
+      }
+      matchStage.createdAt = dateFilter;
+    }
+
+    const catalog = await Catalog.find(matchStage)
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
 
-    const total = await Catalog.countDocuments();
+    const total = await Catalog.countDocuments(matchStage);
 
     res.status(200).json({
       success: true,

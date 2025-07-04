@@ -32,19 +32,33 @@ const getAllEvents = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const { fromDate, toDate } = req.query;
 
     if (page <= 0 || limit <= 0) {
       return res.status(400).json({ error: "Page and limit must be positive numbers" });
     }
 
     const skip = (page - 1) * limit;
+    const matchStage = {};
 
-    const events = await Event.find()
+    // Date Filter Logic
+    if (fromDate || toDate) {
+      const dateFilter = {};
+      if (fromDate) dateFilter.$gte = new Date(fromDate);
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999);
+        dateFilter.$lte = to;
+      }
+      matchStage.createdAt = dateFilter;
+    }
+
+    const events = await Event.find(matchStage)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await Event.countDocuments();
+    const total = await Event.countDocuments(matchStage);
 
     res.status(200).json({
       success: true,

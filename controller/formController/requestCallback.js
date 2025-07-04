@@ -29,6 +29,7 @@ const getAllRequestCallbacks = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const { fromDate, toDate } = req.query;
 
     if (page <= 0 || limit <= 0) {
       return res.status(400).json({
@@ -39,12 +40,28 @@ const getAllRequestCallbacks = async (req, res) => {
 
     const skip = (page - 1) * limit;
 
-    const callbacks = await RequestCallback.find()
+    const matchStage = {};
+
+    // Date Filter Logic
+    if (fromDate || toDate) {
+      const dateFilter = {};
+      if (fromDate) dateFilter.$gte = new Date(fromDate);
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999); // Include full day for 'toDate'
+        dateFilter.$lte = to;
+      }
+      matchStage.createdAt = dateFilter;
+    }
+
+    // Apply filter and pagination
+    const callbacks = await RequestCallback.find(matchStage)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await RequestCallback.countDocuments();
+    const total = await RequestCallback.countDocuments(matchStage);
+
     res.status(200).json({
       success: true,
       data: callbacks,

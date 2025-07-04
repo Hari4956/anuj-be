@@ -43,10 +43,18 @@ const getQuotes = async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
+        if (page <= 0 || limit <= 0) {
+            return res.status(400).json({
+                success: false,
+                error: "Page and limit must be positive numbers"
+            });
+        }
+
         const totalQuotes = await GetQuote.countDocuments();
 
         const quotes = await GetQuote.find()
             .populate('product')
+            .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
 
@@ -59,6 +67,39 @@ const getQuotes = async (req, res) => {
                 totalPages: Math.ceil(totalQuotes / limit),
                 pageSize: limit
             }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
+
+const getQuotesByDate = async (req, res) => {
+    try {
+        const { fromDate, toDate } = req.query;
+
+        const matchStage = {};
+
+        if (fromDate || toDate) {
+            const dateFilter = {};
+            if (fromDate) dateFilter.$gte = new Date(fromDate);
+            if (toDate) {
+                const to = new Date(toDate);
+                to.setHours(23, 59, 59, 999);
+                dateFilter.$lte = to;
+            }
+            matchStage.createdAt = dateFilter;
+        }
+
+        const quotes = await GetQuote.find(matchStage)
+            .populate('product')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            data: quotes
         });
     } catch (error) {
         res.status(500).json({
@@ -89,4 +130,4 @@ const deleteQuote = async (req, res) => {
     }
 };
 
-module.exports = { addQuote, getQuotes, deleteQuote };
+module.exports = { addQuote, getQuotes, deleteQuote, getQuotesByDate };

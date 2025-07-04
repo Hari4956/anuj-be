@@ -3,7 +3,6 @@ const EventPage = require("../../models/eventsModel/events");
 const createEvent = async (req, res) => {
   console.log(req.body);
   try {
-    // Trim whitespace from field names
     const bodyFields = {};
     Object.keys(req.body).forEach((key) => {
       bodyFields[key.trim()] = req.body[key];
@@ -20,13 +19,10 @@ const createEvent = async (req, res) => {
 
     console.log("Received body fields:", bodyFields);
 
-    // const mainImage = req.files?.mainImage?.[0]?.path || null;
-
     // Handle subImages
     const subImages = req.files?.subImages?.map((file) => file.path) || [];
 
     // Validate required fields
-
     if (!mainHeading || !place || !para || !date) {
       return res.status(400).json({
         success: false,
@@ -99,7 +95,6 @@ const createEvent = async (req, res) => {
 
     const newEvent = new EventPage({
       mainHeading,
-      // mainImage,
       place,
       para,
       date,
@@ -152,17 +147,38 @@ const getByEventId = async (req, res) => {
 
 const getAllEvent = async (req, res) => {
   try {
-    const event = await EventPage.find();
+    const { fromDate, toDate } = req.query;
+
+    const from = fromDate ? new Date(fromDate) : null;
+    const to = toDate ? new Date(toDate) : null;
+
+    const matchStage = {};
+    if (from || to) {
+      const dateFilter = {};
+      if (from) dateFilter.$gte = from;
+      if (to) {
+        to.setHours(23, 59, 59, 999);
+        dateFilter.$lte = to;
+      }
+      matchStage.createdAt = dateFilter;
+    }
+
+    const events = await EventPage.aggregate([
+      ...(Object.keys(matchStage).length ? [{ $match: matchStage }] : []),
+      { $sort: { createdAt: -1 } }
+    ]);
+
     res.status(200).json({
       success: true,
-      data: event,
+      data: events
     });
+
   } catch (error) {
-    console.error("Error fetching event:", error);
+    console.error("Error fetching events:", error);
     res.status(500).json({
       success: false,
-      error: "Internal Server Error",
-      details: error.message,
+      message: "Internal Server Error",
+      details: error.message
     });
   }
 };

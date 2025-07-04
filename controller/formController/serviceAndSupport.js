@@ -41,6 +41,7 @@ const getAllSupportRequests = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const { fromDate, toDate } = req.query;
 
     if (page <= 0 || limit <= 0) {
       return res.status(400).json({
@@ -48,13 +49,28 @@ const getAllSupportRequests = async (req, res) => {
         error: "Page and limit must be positive numbers"
       });
     }
+
+    const matchStage = {};
+
+    // Date Filter Logic
+    if (fromDate || toDate) {
+      const dateFilter = {};
+      if (fromDate) dateFilter.$gte = new Date(fromDate);
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999); // Include full day for 'toDate'
+        dateFilter.$lte = to;
+      }
+      matchStage.createdAt = dateFilter;
+    }
+
     const skip = (page - 1) * limit;
-    const requests = await ServiceAndSupport.find()
+    const requests = await ServiceAndSupport.find(matchStage)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await ServiceAndSupport.countDocuments();
+    const total = await ServiceAndSupport.countDocuments(matchStage);
 
     res.status(200).json({
       success: true,

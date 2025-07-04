@@ -9,7 +9,7 @@ const getQuoteSchema = new mongoose.Schema({
         ref: 'TileProduct'
     },
     quantity: { type: String, required: true },
-});
+}, { timestamps: true });
 
 const GetQuote = mongoose.model("GetQuote", getQuoteSchema);
 module.exports = GetQuote;

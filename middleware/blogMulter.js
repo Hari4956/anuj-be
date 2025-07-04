@@ -16,33 +16,17 @@ const storage = new CloudinaryStorage({
   params: {
     folder: 'blog',
     allowed_formats: ['jpg', 'png', 'jpeg'],
-    transformation: [{ width: 1000, height: 1000, crop: 'limit' }]
   }
 });
-
-// File filter
-const fileFilter = (req, file, cb) => {
-  if (['image/jpeg', 'image/png', 'image/jpg'].includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Invalid file type. Only JPEG, PNG, and JPG allowed'), false);
-  }
-};
 
 // Multer upload configuration
 const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: fileFilter
-}).fields([
-  { name: 'mainImage', maxCount: 1 },
-  { name: 'subImages', maxCount: 10 }
-]);
+}).any();
 
-// Middleware handler
 module.exports = (req, res, next) => {
   upload(req, res, (err) => {
-    
 
     if (err) {
       if (err.code === 'LIMIT_UNEXPECTED_FILE') {

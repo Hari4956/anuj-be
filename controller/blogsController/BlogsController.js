@@ -2,7 +2,6 @@ const BlogPage = require("../../models/blogsModel/BlogsModel");
 
 const createBlog = async (req, res) => {
   try {
-    // Trim whitespace from field names
     const bodyFields = {};
     Object.keys(req.body).forEach((key) => {
       bodyFields[key.trim()] = req.body[key];
@@ -10,24 +9,21 @@ const createBlog = async (req, res) => {
 
     const {
       mainHeading,
-      title,
+      place,
       para,
       date,
-      time,
       tableOfContent,
       subContents,
     } = bodyFields;
 
-    // Handle mainImage
-    const mainImage = req.files?.mainImage?.[0]?.path || null;
-
     // Handle subImages
     const subImages = req.files?.subImages?.map((file) => file.path) || [];
 
-    if (!mainImage) {
+    // Validate required fields
+    if (!mainHeading || !place || !para || !date) {
       return res.status(400).json({
         success: false,
-        error: "Main image is required.",
+        error: "All main fields are required.",
       });
     }
 
@@ -41,22 +37,31 @@ const createBlog = async (req, res) => {
             : subContents;
 
         if (Array.isArray(parsedSubContents)) {
+          // Validate each subContent has exactly the required 3 fields
           processedSubContents = parsedSubContents.map((subContent, index) => {
-            const imagesForContent = subImages[index] ? [subImages[index]] : [];
+            if (!subContent.pictureHeading || !subContent.pictureDescription) {
+              throw new Error(
+                "Each subContent must have pictureHeading and pictureDescription"
+              );
+            }
 
             return {
-              ...subContent,
-              subImages: imagesForContent,
+              pictureHeading: subContent.pictureHeading,
+              pictureDescription: subContent.pictureDescription,
+              subImages: subImages[index] ? [subImages[index]] : [],
             };
           });
         } else {
-          console.error("subContents is not an array");
+          return res.status(400).json({
+            success: false,
+            error: "subContents must be an array",
+          });
         }
       } catch (e) {
         console.error("Error parsing subContents:", e);
         return res.status(400).json({
           success: false,
-          error: "Invalid subContents format",
+          error: e.message || "Invalid subContents format",
         });
       }
     }
@@ -65,7 +70,17 @@ const createBlog = async (req, res) => {
     let parsedTableOfContent = [];
     if (tableOfContent) {
       try {
-        parsedTableOfContent = JSON.parse(tableOfContent);
+        parsedTableOfContent =
+          typeof tableOfContent === "string"
+            ? JSON.parse(tableOfContent)
+            : tableOfContent;
+
+        if (!Array.isArray(parsedTableOfContent)) {
+          return res.status(400).json({
+            success: false,
+            error: "tableOfContent must be an array",
+          });
+        }
       } catch (e) {
         console.error("Error parsing tableOfContent:", e);
         return res.status(400).json({
@@ -78,11 +93,9 @@ const createBlog = async (req, res) => {
     // Create and save the new blog
     const newBlog = new BlogPage({
       mainHeading,
-      mainImage,
-      title,
+      place,
       para,
       date,
-      time,
       tableOfContent: parsedTableOfContent,
       subContents: processedSubContents,
     });
@@ -132,7 +145,33 @@ const getByBlogId = async (req, res) => {
 
 const getAllBlogs = async (req, res) => {
   try {
-    const blogs = await BlogPage.find();
+    const { fromDate, toDate } = req.query;
+
+    const from = fromDate ? new Date(fromDate) : null;
+    const to = toDate ? new Date(toDate) : null;
+
+    const matchStage = {};
+
+    if (from || to) {
+      const dateFilter = {};
+      if (from) dateFilter.$gte = from;
+      if (to) {
+        to.setHours(23, 59, 59, 999);
+        dateFilter.$lte = to;
+      }
+      matchStage.createdAt = dateFilter;
+    }
+
+    const pipeline = [];
+
+    if (Object.keys(matchStage).length > 0) {
+      pipeline.push({ $match: matchStage });
+    }
+
+    pipeline.push({ $sort: { createdAt: -1 } });
+
+    const blogs = await BlogPage.aggregate(pipeline);
+
     res.status(200).json({
       success: true,
       data: blogs,
@@ -175,153 +214,57 @@ const deleteBlogById = async (req, res) => {
 };
 
 const updateBlog = async (req, res) => {
+  const { id } = req.params;
+  console.log(req.body);
+  let { mainHeading, place, para, date, tableOfContent, subContents } = req.body;
+
   try {
-    const { id } = req.params;
-
-    if (!req.body) {
-      return res.status(400).json({
-        success: false,
-        error: "Request body is missing.",
-      });
-    }
-
-    // Trim all field names in the request body
-    const bodyFields = {};
-    Object.keys(req.body).forEach((key) => {
-      bodyFields[key.trim()] = req.body[key];
-    });
-
-    const {
-      mainHeading,
-      title,
-      para,
-      date,
-      time,
-      tableOfContent,
-      subContents,
-    } = bodyFields;
-
-    const mainImage = req.files?.mainImage?.[0]?.path || null;
-    const subImages = req.files?.subImages?.map((file) => file.path) || [];
-
-    // Check if the blog exists
     const existingBlog = await BlogPage.findById(id);
     if (!existingBlog) {
-      return res.status(404).json({
-        success: false,
-        error: "Blog not found.",
-      });
+      return res.status(404).json({ message: "blog not found" });
     }
 
-    // Update only provided fields
-    if (mainHeading !== undefined) existingBlog.mainHeading = mainHeading;
-    if (title !== undefined) existingBlog.title = title;
-    if (para !== undefined) existingBlog.para = para;
-    if (date !== undefined) existingBlog.date = date;
-    if (time !== undefined) existingBlog.time = time;
-    if (mainImage) existingBlog.mainImage = mainImage;
+    // Parse JSON strings if needed
+    if (typeof subContents === "string") subContents = JSON.parse(subContents);
+    if (typeof tableOfContent === "string") tableOfContent = JSON.parse(tableOfContent);
 
-    // Process tableOfContent
-    let parsedTableOfContent = existingBlog.tableOfContent;
-    if (tableOfContent !== undefined) {
-      try {
-        parsedTableOfContent =
-          typeof tableOfContent === "string"
-            ? JSON.parse(tableOfContent)
-            : tableOfContent;
+    const updatedSubContents = subContents.map((sub, index) => {
+      const existingSub = existingBlog.subContents[index] || {};
+      const uploadedImages = (req.files || [])
+        .filter(file => file.fieldname === `subImages_${index}`)
+        .map(file => file.path);
 
-        if (!Array.isArray(parsedTableOfContent)) {
-          throw new Error("tableOfContent must be an array.");
-        }
+      return {
+        ...existingSub,
+        ...sub,
+        subImages: uploadedImages.length > 0 ? uploadedImages : existingSub.subImages || [],
+      };
+    });
 
-        existingBlog.tableOfContent = parsedTableOfContent;
-      } catch (e) {
-        console.error("Error parsing tableOfContent:", e);
-        return res.status(400).json({
-          success: false,
-          error: "Invalid tableOfContent format.",
-        });
-      }
+    // Update text fields
+    existingBlog.mainHeading = mainHeading || existingBlog.mainHeading;
+    existingBlog.place = place || existingBlog.place;
+    existingBlog.para = para || existingBlog.para;
+    existingBlog.date = date || existingBlog.date;
+    existingBlog.tableOfContent = tableOfContent || existingBlog.tableOfContent;
+    existingBlog.subContents = updatedSubContents;
+
+    // Replace main image if uploaded
+    const mainImgFile = (req.files || []).find(f => f.fieldname === "mainImage");
+    if (mainImgFile) {
+      existingBlog.mainImage = mainImgFile.path;
     }
 
-    // Process subContents
-    if (subContents !== undefined) {
-      try {
-        const parsedSubContents =
-          typeof subContents === "string"
-            ? JSON.parse(subContents)
-            : subContents;
-
-        if (!Array.isArray(parsedSubContents)) {
-          throw new Error("subContents must be an array.");
-        }
-
-        // Length validation
-        if (parsedTableOfContent.length !== parsedSubContents.length) {
-          return res.status(400).json({
-            success: false,
-            error: `Length of subContents (${parsedSubContents.length}) must match length of tableOfContent (${parsedTableOfContent.length}).`,
-          });
-        }
-
-        const updatedSubContents = existingBlog.subContents.map(
-          (existingSubContent, index) => {
-            const incomingSubContent = parsedSubContents[index];
-            const subContentImages = subImages[index]
-              ? [subImages[index]]
-              : existingSubContent.subImages;
-
-            if (!incomingSubContent) return existingSubContent;
-
-            return {
-              ...existingSubContent,
-              ...incomingSubContent,
-              subImages: subContentImages.length
-                ? subContentImages
-                : existingSubContent.subImages,
-            };
-          }
-        );
-
-        // Add new subContents if any
-        if (parsedSubContents.length > existingBlog.subContents.length) {
-          const additionalSubContents = parsedSubContents
-            .slice(existingBlog.subContents.length)
-            .map((subContent, index) => ({
-              ...subContent,
-              subImages: subImages[existingBlog.subContents.length + index]
-                ? [subImages[existingBlog.subContents.length + index]]
-                : [],
-            }));
-
-          updatedSubContents.push(...additionalSubContents);
-        }
-
-        existingBlog.subContents = updatedSubContents;
-      } catch (e) {
-        console.error("Error parsing subContents:", e);
-        return res.status(400).json({
-          success: false,
-          error: "Invalid subContents format.",
-        });
-      }
-    }
-
-    // Save the updated blog
     const updatedBlog = await existingBlog.save();
 
-    return res.status(200).json({
-      success: true,
-      message: "Blog updated successfully",
-      data: updatedBlog,
+    res.status(200).json({
+      message: "blog updated successfully",
+      event: updatedBlog,
     });
+
   } catch (error) {
-    console.error("Full error:", error);
-    return res.status(500).json({
-      success: false,
-      error: "Internal Server Error",
-      details: error.message,
-    });
+    console.error("Update Error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 

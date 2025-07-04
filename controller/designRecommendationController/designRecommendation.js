@@ -78,11 +78,38 @@ const deleteDesignRecommendationById = async (req, res) => {
 
 const getDesignRecommendations = async (req, res) => {
   try {
+    const { fromDate, toDate } = req.query;
     const page = parseInt(req.query.page) || 1;
-    const limit = req.query.limit || 8;
+    const limit = 8;
     const skip = (page - 1) * limit;
 
-    const recommendations = await DesignRecommendation.aggregate([
+    // Match stage for filtering
+    const matchStage = {};
+
+    if (fromDate || toDate) {
+      const dateFilter = {};
+
+      if (fromDate) {
+        dateFilter.$gte = new Date(fromDate);
+      }
+
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999); // ✅ Include full toDate
+        dateFilter.$lte = to;
+      }
+
+      matchStage.createdAt = dateFilter;
+    }
+
+    const pipeline = [];
+
+    // Apply filter if matchStage exists
+    if (Object.keys(matchStage).length > 0) {
+      pipeline.push({ $match: matchStage });
+    }
+
+    pipeline.push(
       { $sort: { createdAt: -1 } },
       { $skip: skip },
       { $limit: limit },
@@ -91,29 +118,34 @@ const getDesignRecommendations = async (req, res) => {
           from: "tileproducts",
           localField: "productId.product",
           foreignField: "_id",
-          as: "productDetails",
-        },
+          as: "productDetails"
+        }
       },
       {
         $project: {
           roomImage: 1,
           createdAt: 1,
           productId: 1,
-          productDetails: 1,
-          tileType: 1,
-        },
-      },
+          productDetails: 1
+        }
+      }
+    );
+
+    // Fetch data and total count
+    const [recommendations, totalCount] = await Promise.all([
+      DesignRecommendation.aggregate(pipeline),
+      DesignRecommendation.countDocuments(matchStage)
     ]);
 
-    const totalCount = await DesignRecommendation.countDocuments();
-
     res.status(200).json({
+      success: true,
       currentPage: page,
       totalPages: Math.ceil(totalCount / limit),
       totalCount,
-      data: recommendations,
+      data: recommendations
     });
   } catch (err) {
+    console.error("Error fetching design recommendations:", err);
     res.status(500).json({ error: err.message });
   }
 };
