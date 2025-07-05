@@ -2,23 +2,16 @@ const ContactUs = require("../../models/ContactUsModel/ContactUsModel");
 
 const addContactUs = async (req, res) => {
   try {
-    const formData = Object.assign({}, req.body); // Safely extract fields
+    console.log("BODY:", req.body);
+    console.log("FILES:", req.files);
+
+    const formData = Object.assign({}, req.body);
     const { shopName, location, phoneNumber, openUtils, email } = formData;
 
-    const shopImage =
-      req.files && req.files.shopImage && req.files.shopImage[0]
-        ? req.files.shopImage[0].path
-        : null;
+    const shopImageFile = req.files.find((file) => file.fieldname === 'shopImage');
+    const shopImage = shopImageFile ? shopImageFile.path : null;
 
-    // Validate required fields
-    if (
-      !shopImage ||
-      !shopName ||
-      !location ||
-      !phoneNumber ||
-      !openUtils ||
-      !email
-    ) {
+    if (!shopImage || !shopName || !location || !phoneNumber || !openUtils || !email) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
@@ -49,6 +42,7 @@ const addContactUs = async (req, res) => {
     });
   }
 };
+
 
 const getAllContactUs = async (req, res) => {
   try {
