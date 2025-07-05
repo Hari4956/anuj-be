@@ -80,7 +80,7 @@ const getDesignRecommendations = async (req, res) => {
   try {
     const { fromDate, toDate } = req.query;
     const page = parseInt(req.query.page) || 1;
-    const limit = 8;
+    const limit = req.query.limit || 8;
     const skip = (page - 1) * limit;
 
     // Match stage for filtering
