@@ -17,11 +17,6 @@ const createEvent = async (req, res) => {
       subContents,
     } = bodyFields;
 
-    console.log("Received body fields:", bodyFields);
-
-    // Handle subImages
-    const subImages = req.files?.subImages?.map((file) => file.path) || [];
-
     // Validate required fields
     if (!mainHeading || !place || !para || !date) {
       return res.status(400).json({
@@ -30,69 +25,53 @@ const createEvent = async (req, res) => {
       });
     }
 
-    // Process tableOfContent safely
+    // Parse tableOfContent
     let parsedTableOfContent = [];
     if (tableOfContent) {
-      try {
-        parsedTableOfContent =
-          typeof tableOfContent === "string"
-            ? JSON.parse(tableOfContent)
-            : tableOfContent;
-
-        if (!Array.isArray(parsedTableOfContent)) {
-          return res.status(400).json({
-            success: false,
-            error: "tableOfContent must be an array",
-          });
-        }
-      } catch (e) {
-        console.error("Error parsing tableOfContent:", e);
-        return res.status(400).json({
-          success: false,
-          error: "Invalid tableOfContent format",
-        });
+      parsedTableOfContent =
+        typeof tableOfContent === "string" ? JSON.parse(tableOfContent) : tableOfContent;
+      if (!Array.isArray(parsedTableOfContent)) {
+        return res.status(400).json({ success: false, error: "tableOfContent must be an array" });
       }
     }
 
-    // Process subContents safely with exactly 3 fields
+    // Parse subContents
     let processedSubContents = [];
     if (subContents) {
-      try {
-        const parsedSubContents =
-          typeof subContents === "string"
-            ? JSON.parse(subContents)
-            : subContents;
+      const parsedSubContents =
+        typeof subContents === "string" ? JSON.parse(subContents) : subContents;
 
-        if (Array.isArray(parsedSubContents)) {
-          // Validate each subContent has exactly the required 3 fields
-          processedSubContents = parsedSubContents.map((subContent, index) => {
-            if (!subContent.pictureHeading || !subContent.pictureDescription) {
-              throw new Error(
-                "Each subContent must have pictureHeading and pictureDescription"
-              );
-            }
+      if (!Array.isArray(parsedSubContents)) {
+        return res.status(400).json({ success: false, error: "subContents must be an array" });
+      }
 
-            return {
-              pictureHeading: subContent.pictureHeading,
-              pictureDescription: subContent.pictureDescription,
-              subImages: subImages[index] ? [subImages[index]] : [],
-            };
-          });
-        } else {
-          return res.status(400).json({
-            success: false,
-            error: "subContents must be an array",
-          });
-        }
-      } catch (e) {
-        console.error("Error parsing subContents:", e);
-        return res.status(400).json({
-          success: false,
-          error: e.message || "Invalid subContents format",
+      // Prepare subImages mapping
+      const subImagesMap = {}; // { '0': [img1, img2], '1': [img3] }
+      if (req.files && req.files.length > 0) {
+        req.files.forEach((file) => {
+          const match = file.fieldname.match(/subContents\[(\d+)]\[subImages]\[(\d+)]/);
+          if (match) {
+            const subIndex = match[1];
+            if (!subImagesMap[subIndex]) subImagesMap[subIndex] = [];
+            subImagesMap[subIndex].push(file.path); // Cloudinary URL
+          }
         });
       }
+
+      // Build final subContents
+      processedSubContents = parsedSubContents.map((subContent, index) => {
+        if (!subContent.pictureHeading || !subContent.pictureDescription) {
+          throw new Error("Each subContent must have pictureHeading and pictureDescription");
+        }
+        return {
+          pictureHeading: subContent.pictureHeading,
+          pictureDescription: subContent.pictureDescription,
+          subImages: subImagesMap[index] || [],
+        };
+      });
     }
 
+    // Create and save Event
     const newEvent = new EventPage({
       mainHeading,
       place,
@@ -115,10 +94,10 @@ const createEvent = async (req, res) => {
       success: false,
       error: "Internal Server Error",
       details: error.message,
-      validationErrors: error.errors,
     });
   }
 };
+
 
 const getByEventId = async (req, res) => {
   try {
@@ -148,6 +127,16 @@ const getByEventId = async (req, res) => {
 const getAllEvent = async (req, res) => {
   try {
     const { fromDate, toDate } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 6;
+    const skip = (page - 1) * limit;
+
+    if (page <= 0 || limit <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Page and limit must be positive numbers",
+      });
+    }
 
     const from = fromDate ? new Date(fromDate) : null;
     const to = toDate ? new Date(toDate) : null;
@@ -163,14 +152,26 @@ const getAllEvent = async (req, res) => {
       matchStage.createdAt = dateFilter;
     }
 
+    const filterStage = Object.keys(matchStage).length ? [{ $match: matchStage }] : [];
+
+    const totalEvents = await EventPage.countDocuments(matchStage);
+
     const events = await EventPage.aggregate([
-      ...(Object.keys(matchStage).length ? [{ $match: matchStage }] : []),
-      { $sort: { createdAt: -1 } }
+      ...filterStage,
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit }
     ]);
 
     res.status(200).json({
       success: true,
-      data: events
+      data: events,
+      pagination: {
+        totalItems: totalEvents,
+        currentPage: page,
+        totalPages: Math.ceil(totalEvents / limit),
+        pageSize: limit
+      }
     });
 
   } catch (error) {
@@ -182,6 +183,7 @@ const getAllEvent = async (req, res) => {
     });
   }
 };
+
 
 const deleteEvent = async (req, res) => {
   try {

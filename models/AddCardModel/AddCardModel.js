@@ -10,7 +10,8 @@ const addCardSchema = new mongoose.Schema({
     fullName: { type: String, required: true },
     phoneNumber: { type: String, required: true },
     location: { type: String, required: true },
-}, { timestamps: true })
+    price: { type: Number, required: true }
+}, { timestamps: true });
 
-const AddCard = mongoose.model("Add to Card", addCardSchema);
+const AddCard = mongoose.model("AddToCart", addCardSchema);
 module.exports = AddCard;

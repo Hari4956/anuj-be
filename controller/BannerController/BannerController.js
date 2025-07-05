@@ -2,15 +2,18 @@ const BannerModel = require("../../models/Banner/Banner");
 
 const addBanner = async (req, res) => {
     try {
-        const { page } = req.body;
+        const { page, redirectURL } = req.body;   // ✅ Fix casing
+        console.log(req.body);
+        console.log(req.file);
 
-        if (!req.file || !page) {
+        if (!req.file || !page || !redirectURL) {
             return res.status(400).json({ error: "All fields are required" });
         }
 
         const banner = await BannerModel.create({
             page,
-            bannerImage: req.file.path || req.file.filename // depends on your multer config
+            redirectURL,                          // ✅ Consistent naming
+            bannerImage: req.file.path || req.file.filename
         });
 
         res.status(200).json({
@@ -53,7 +56,7 @@ const getBanner = async (req, res) => {
 
 const UpdateBanner = async (req, res) => {
     try {
-        const { id, page } = req.body;
+        const { id, page, redirectURL } = req.body;
 
         if (!id) {
             return res.status(400).json({ success: false, message: "ID is required" });
@@ -64,6 +67,7 @@ const UpdateBanner = async (req, res) => {
             {
                 bannerImage: req.file?.path || req.body.bannerImage, // depends on upload logic
                 page,
+                redirectURL
             },
             { new: true }
         );

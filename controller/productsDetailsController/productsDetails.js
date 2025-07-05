@@ -146,8 +146,8 @@ const getAllTileProducts = async (req, res) => {
     }
 
     const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
-
-    const products = await TileProduct.find({ _id: { $in: objectIds } });
+    const sortBy = { createdAt: -1 };
+    const products = await TileProduct.find({ _id: { $in: objectIds } }).sort(sortBy);
 
     res.status(200).json({
       success: true,
@@ -343,6 +343,7 @@ const filtergetProducts = async (req, res) => {
     const totalCount = await TileProduct.aggregate([
       ...countPipeline,
       { $count: "totalCount" },
+      { $sort: { createdAt: -1 } },
     ]);
 
     const totalRecords = totalCount[0] ? totalCount[0].totalCount : 0;
