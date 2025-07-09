@@ -4,7 +4,6 @@ const addBanner = async (req, res) => {
     try {
         const { page, redirectURL } = req.body;   // ✅ Fix casing
         console.log(req.body);
-        console.log(req.file);
 
         if (!req.file || !page || !redirectURL) {
             return res.status(400).json({ error: "All fields are required" });

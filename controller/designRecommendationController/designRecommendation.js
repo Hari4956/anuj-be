@@ -5,6 +5,8 @@ const createDesignRecommendation = async (req, res) => {
     // multer saves uploaded file info here
     const roomImage = req.file ? req.file.path : null;
     const { tileType } = req.body;
+    console.log(req.body);
+    
     const productIdRaw = req.body.productId;
 
     let productId;
