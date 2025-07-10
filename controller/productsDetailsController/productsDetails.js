@@ -48,20 +48,61 @@ const createTileProduct = async (req, res) => {
     } catch (e) {
       console.warn("Failed to parse featureImage:", e);
     }
-    const appliedimageUrl = req.files?.appliedimage?.[0]?.path || "";
+    const appliedimage = [];
+
+    if (req.files && req.files.appliedimage) {
+      req.files.appliedimage.forEach((file) => {
+        appliedimage.push({
+          thumbnail: file.path,
+          public_id: file.filename || "",
+          url: file.path,
+        });
+      });
+    }
 
     const width = parseInt(req.body.size?.width);
     const height = parseInt(req.body.size?.height);
-    const unit = req.body.size?.unit || "mm";
-
-    console.log("Received width:", width);
-    console.log("Received height:", height);
 
     if (isNaN(width) || isNaN(height)) {
-      return res.status(400).json({ error: "Width and Height must be valid numbers." });
+      return res
+        .status(400)
+        .json({ error: "Width and Height must be valid numbers." });
     }
 
-    const size = { width, height, unit };
+    const size = { width, height };
+
+    // Build size string manually for matching
+    const sizeString = `${width}x${height}`;
+
+    // Now match from tile list
+    const tiles = [
+  { piece: 12, size: "300x200", sqf: 0.646 }, 
+  { piece: 8, size: "375x250", sqf: 1.009 },
+  { piece: 4, size: "450x300", sqf: 2.18 },
+  { piece: 8, size: "450x300", sqf: 1.454 },
+  { piece: 4, size: "600x300", sqf: 3.27 },
+  { piece: 6, size: "600x300", sqf: 1.615 },
+  { piece: 4, size: "800x400", sqf: 3.445 },
+  { piece: 8, size: "300x300", sqf: 0.969 },
+  { piece: 6, size: "600x600", sqf: 2.583 },
+  { piece: 3, size: "800x800", sqf: 6.89 },
+  { piece: 2, size: "1200x600", sqf: 7.75 },
+  { piece: 2, size: "1200x600", sqf: 10.335 },
+  { piece: 2, size: "1600x800", sqf: 13.775 },
+  { piece: 2, size: "1800x1200", sqf: 11.625 },
+  { piece: 2, size: "1200x1200", sqf: 15.5 },
+  { piece: 1, size: "2400x1200", sqf: 31.0 },
+  { piece: 1, size: "1600x800", sqf: 20.67 },
+  { piece: 1, size: "2400x1200", sqf: 20.67 },
+  { piece: 2, size: "1200x600", sqf: 7.75 },
+  { piece: 3, size: "800x300", sqf: 3.443 },
+  { piece: 4, size: "1200x300", sqf: 2.905 },
+  { piece: 4, size: "900x300", sqf: 1.938 },
+  { piece: 4, size: "900x200", sqf: 1.938 },  
+    ];
+    const matchedTile = tiles.find((tile) => tile.size === sizeString);
+    const piece = matchedTile?.piece || 0;
+    const sqf = matchedTile?.sqf || 0;
 
     const product = new TileProduct({
       productID: req.body.productID,
@@ -70,6 +111,8 @@ const createTileProduct = async (req, res) => {
       name: req.body.name,
       series: req.body.series,
       size,
+      piece,
+      sqf,
       availability: req.body.availability,
       originalPrice: req.body.originalPrice,
       discount: req.body.discount,
@@ -80,7 +123,7 @@ const createTileProduct = async (req, res) => {
       PriceType: req.body.PriceType,
       description: req.body.description,
       productParticulars: req.body.productParticulars,
-      appliedimage: appliedimageUrl,
+      appliedimage: appliedimage,
     });
 
     await product.save();
@@ -147,7 +190,9 @@ const getAllTileProducts = async (req, res) => {
 
     const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
     const sortBy = { createdAt: -1 };
-    const products = await TileProduct.find({ _id: { $in: objectIds } }).sort(sortBy);
+    const products = await TileProduct.find({ _id: { $in: objectIds } }).sort(
+      sortBy
+    );
 
     res.status(200).json({
       success: true,
@@ -286,7 +331,7 @@ const filtergetProducts = async (req, res) => {
             { $toString: "$size.width" },
             "x",
             { $toString: "$size.height" },
-            "$size.unit",
+            // "$size.unit",
           ],
         },
       },
@@ -448,7 +493,9 @@ const updateTileProduct = async (req, res) => {
     let product = await TileProduct.findById(id);
 
     if (!product) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
     }
 
     if (typeof req.body.appliedimage === "string") {
@@ -466,7 +513,7 @@ const updateTileProduct = async (req, res) => {
     }
 
     if (req.files["appliedimage"]) {
-      const appliedimage = req.files["appliedimage"].map(file => ({
+      const appliedimage = req.files["appliedimage"].map((file) => ({
         thumbnail: file.path,
         public_id: file.filename,
         url: file.secure_url || file.url || file.path,
@@ -521,7 +568,7 @@ const updateTileProduct = async (req, res) => {
           product.size = {
             width,
             height,
-            unit: sizeObj.unit || "mm",
+            // unit: sizeObj.unit || "mm",
           };
         }
       } catch (e) {
@@ -531,7 +578,8 @@ const updateTileProduct = async (req, res) => {
 
     // Convert and update boolean Trending
     if (req.body.Trending !== undefined) {
-      product.Trending = req.body.Trending === "true" || req.body.Trending === true;
+      product.Trending =
+        req.body.Trending === "true" || req.body.Trending === true;
     }
 
     // Update other direct fields
@@ -540,11 +588,13 @@ const updateTileProduct = async (req, res) => {
     product.name = req.body.name || product.name;
     product.series = req.body.series || product.series;
     product.availability = req.body.availability || product.availability;
-    product.originalPrice = parseFloat(req.body.originalPrice) || product.originalPrice;
+    product.originalPrice =
+      parseFloat(req.body.originalPrice) || product.originalPrice;
     product.discount = parseFloat(req.body.discount) || product.discount;
     product.priceType = req.body.priceType || product.priceType;
     product.description = req.body.description || product.description;
-    product.productParticulars = req.body.productParticulars || product.productParticulars;
+    product.productParticulars =
+      req.body.productParticulars || product.productParticulars;
     product.active = req.body.active || product.active;
 
     await product.save();

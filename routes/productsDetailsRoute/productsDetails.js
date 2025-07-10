@@ -33,11 +33,15 @@ router.get("/filtergetproducts", filtergetProducts);
 router.post("/getallproducts", getAllTileProducts);
 router.put("/updateMultiple", updateMultipleProducts);
 router.put("/active-product/:id", ActiveProductById);
-router.put("/:id", upload.fields([
-  { name: "images" },
-  { name: "appliedimage", maxCount: 1 },
-  { name: "featureImage" }
-]), updateTileProduct);
+router.put(
+  "/:id",
+  upload.fields([
+    { name: "images" },
+    { name: "appliedimage", maxCount: 1 },
+    { name: "featureImage" },
+  ]),
+  updateTileProduct
+);
 router.get("/getproduct/:id", getTileProductById);
 router.delete("/:id", deleteTileProductById);
 

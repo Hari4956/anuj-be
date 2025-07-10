@@ -71,7 +71,7 @@ app.use(
       "http://localhost:5173",
       "https://friendly-piroshki-7d3963.netlify.app",
       "https://wondrous-duckanoo-03bdf1.netlify.app",
-      "https://lucent-cannoli-b39c8c.netlify.app"
+      "https://lucent-cannoli-b39c8c.netlify.app",
     ],
     credentials: true,
   })

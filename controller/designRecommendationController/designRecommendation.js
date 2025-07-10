@@ -6,7 +6,7 @@ const createDesignRecommendation = async (req, res) => {
     const roomImage = req.file ? req.file.path : null;
     const { tileType } = req.body;
     console.log(req.body);
-    
+
     const productIdRaw = req.body.productId;
 
     let productId;
@@ -19,7 +19,12 @@ const createDesignRecommendation = async (req, res) => {
     }
 
     // Validate inputs
-    if (!roomImage || !tileType || !Array.isArray(productId) || productId.length === 0) {
+    if (
+      !roomImage ||
+      !tileType ||
+      !Array.isArray(productId) ||
+      productId.length === 0
+    ) {
       return res
         .status(400)
         .json({ error: "roomImage and productId are required" });
@@ -79,7 +84,6 @@ const deleteDesignRecommendationById = async (req, res) => {
 };
 
 const getDesignRecommendations = async (req, res) => {
-  
   try {
     const { fromDate, toDate } = req.query;
     const page = parseInt(req.query.page) || 1;
@@ -121,23 +125,24 @@ const getDesignRecommendations = async (req, res) => {
           from: "tileproducts",
           localField: "productId.product",
           foreignField: "_id",
-          as: "productDetails"
-        }
+          as: "productDetails",
+        },
       },
       {
         $project: {
           roomImage: 1,
           createdAt: 1,
           productId: 1,
-          productDetails: 1
-        }
+          tileType: 1,
+          productDetails: 1,
+        },
       }
     );
 
     // Fetch data and total count
     const [recommendations, totalCount] = await Promise.all([
       DesignRecommendation.aggregate(pipeline),
-      DesignRecommendation.countDocuments(matchStage)
+      DesignRecommendation.countDocuments(matchStage),
     ]);
 
     res.status(200).json({
@@ -145,7 +150,7 @@ const getDesignRecommendations = async (req, res) => {
       currentPage: page,
       totalPages: Math.ceil(totalCount / limit),
       totalCount,
-      data: recommendations
+      data: recommendations,
     });
   } catch (err) {
     console.error("Error fetching design recommendations:", err);
@@ -175,7 +180,7 @@ const updateDesignRecommendationById = async (req, res) => {
     if (updatedRoomImage) updateData.roomImage = updatedRoomImage;
     if (updatedProductId.length > 0) updateData.productId = updatedProductId;
 
-    if (req.body.tileType && typeof req.body.tileType === 'string') {
+    if (req.body.tileType && typeof req.body.tileType === "string") {
       updateData.tileType = req.body.tileType;
     }
 

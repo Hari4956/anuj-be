@@ -11,8 +11,9 @@ const tileProductSchema = new mongoose.Schema(
     size: {
       width: { type: Number, required: true },
       height: { type: Number, required: true },
-      unit: { type: String, default: "mm" },
     },
+    piece: { type: Number, default: 0 },
+    sqf: { type: Number, default: 0 },
     availability: { type: String },
     originalPrice: { type: Number },
     discount: { type: Number },
@@ -30,14 +31,14 @@ const tileProductSchema = new mongoose.Schema(
       },
     ],
     featureImage: [{ type: String }],
-    priceType: { type: String },
     appliedimage: [
       {
         thumbnail: { type: String },
-        public_id: { type: String }, 
+        public_id: { type: String },
         url: { type: String },
-      }
-    ], description: { type: String },
+      },
+    ],
+    description: { type: String },
     productParticulars: { type: String },
   },
 
