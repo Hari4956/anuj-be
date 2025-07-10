@@ -1,6 +1,6 @@
-const Event = require("../../models/formModel/eventForm");
+const expo = require("../../models/formModel/ConstructionExpo");
 
-const createEvent = async (req, res) => {
+const createExpo = async (req, res) => {
   try {
     const { fullName, phoneNumber, email } = req.body;
 
@@ -18,15 +18,18 @@ const createEvent = async (req, res) => {
       return res.status(400).json({ error: "Phone number must be 10 digits" });
     }
 
-    const newEvent = new Event({ fullName, phoneNumber, email });
-    const saved = await newEvent.save();
-    res.status(201).json(saved);
+    const newExpo = new expo({ fullName, phoneNumber, email });
+    const saved = await newExpo.save();
+    res.status(201).json({
+      message: "Expo registration successful",
+      data: saved,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-const getAllEvents = async (req, res) => {
+const getAllExpo = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -53,16 +56,17 @@ const getAllEvents = async (req, res) => {
       matchStage.createdAt = dateFilter;
     }
 
-    const events = await Event.find(matchStage)
+    const Expos = await expo
+      .find(matchStage)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await Event.countDocuments(matchStage);
+    const total = await expo.countDocuments(matchStage);
 
     res.status(200).json({
       success: true,
-      data: events,
+      data: Expos,
       pagination: {
         total,
         page,
@@ -75,49 +79,4 @@ const getAllEvents = async (req, res) => {
   }
 };
 
-const updateEventById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const body = req.body;
-
-    if (!body || !body.fullName || !body.phoneNumber || !body.email) {
-      return res.status(400).json({ error: "All fields are required" });
-    }
-
-    const updated = await Event.findByIdAndUpdate(
-      id,
-      {
-        fullName: body.fullName,
-        phoneNumber: body.phoneNumber,
-        email: body.email,
-      },
-      { new: true }
-    );
-
-    if (!updated) {
-      return res.status(404).json({ error: "Event not found" });
-    }
-
-    res.status(200).json(updated);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-const deleteEventById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deleted = await Event.findByIdAndDelete(id);
-    if (!deleted) return res.status(404).json({ error: "Event not found" });
-    res.status(200).json({ message: "Deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-module.exports = {
-  createEvent,
-  getAllEvents,
-  updateEventById,
-  deleteEventById,
-};
+module.exports = { createExpo, getAllExpo };

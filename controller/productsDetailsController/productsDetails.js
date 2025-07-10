@@ -38,7 +38,9 @@ const createTileProduct = async (req, res) => {
     }
 
     const trending =
-      req.body.Trending === "Trending" || req.body.Trending === Trending;
+      req.body.Trending?.toLowerCase() === "trending"
+        ? "Trending"
+        : "Non Trending";
 
     let featureImage = [];
     try {
@@ -76,29 +78,29 @@ const createTileProduct = async (req, res) => {
 
     // Now match from tile list
     const tiles = [
-  { piece: 12, size: "300x200", sqf: 0.646 }, 
-  { piece: 8, size: "375x250", sqf: 1.009 },
-  { piece: 4, size: "450x300", sqf: 2.18 },
-  { piece: 8, size: "450x300", sqf: 1.454 },
-  { piece: 4, size: "600x300", sqf: 3.27 },
-  { piece: 6, size: "600x300", sqf: 1.615 },
-  { piece: 4, size: "800x400", sqf: 3.445 },
-  { piece: 8, size: "300x300", sqf: 0.969 },
-  { piece: 6, size: "600x600", sqf: 2.583 },
-  { piece: 3, size: "800x800", sqf: 6.89 },
-  { piece: 2, size: "1200x600", sqf: 7.75 },
-  { piece: 2, size: "1200x600", sqf: 10.335 },
-  { piece: 2, size: "1600x800", sqf: 13.775 },
-  { piece: 2, size: "1800x1200", sqf: 11.625 },
-  { piece: 2, size: "1200x1200", sqf: 15.5 },
-  { piece: 1, size: "2400x1200", sqf: 31.0 },
-  { piece: 1, size: "1600x800", sqf: 20.67 },
-  { piece: 1, size: "2400x1200", sqf: 20.67 },
-  { piece: 2, size: "1200x600", sqf: 7.75 },
-  { piece: 3, size: "800x300", sqf: 3.443 },
-  { piece: 4, size: "1200x300", sqf: 2.905 },
-  { piece: 4, size: "900x300", sqf: 1.938 },
-  { piece: 4, size: "900x200", sqf: 1.938 },  
+      { piece: 12, size: "300x200", sqf: 0.646 },
+      { piece: 8, size: "375x250", sqf: 1.009 },
+      { piece: 4, size: "450x300", sqf: 2.18 },
+      { piece: 8, size: "450x300", sqf: 1.454 },
+      { piece: 4, size: "600x300", sqf: 3.27 },
+      { piece: 6, size: "600x300", sqf: 1.615 },
+      { piece: 4, size: "800x400", sqf: 3.445 },
+      { piece: 8, size: "300x300", sqf: 0.969 },
+      { piece: 6, size: "600x600", sqf: 2.583 },
+      { piece: 3, size: "800x800", sqf: 6.89 },
+      { piece: 2, size: "1200x600", sqf: 7.75 },
+      { piece: 2, size: "1200x600", sqf: 10.335 },
+      { piece: 2, size: "1600x800", sqf: 13.775 },
+      { piece: 2, size: "1800x1200", sqf: 11.625 },
+      { piece: 2, size: "1200x1200", sqf: 15.5 },
+      { piece: 1, size: "2400x1200", sqf: 31.0 },
+      { piece: 1, size: "1600x800", sqf: 20.67 },
+      { piece: 1, size: "2400x1200", sqf: 20.67 },
+      { piece: 2, size: "1200x600", sqf: 7.75 },
+      { piece: 3, size: "800x300", sqf: 3.443 },
+      { piece: 4, size: "1200x300", sqf: 2.905 },
+      { piece: 4, size: "900x300", sqf: 1.938 },
+      { piece: 4, size: "900x200", sqf: 1.938 },
     ];
     const matchedTile = tiles.find((tile) => tile.size === sizeString);
     const piece = matchedTile?.piece || 0;

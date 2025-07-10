@@ -13,6 +13,8 @@ const designrecommendation = require("./routes/designRecommendationRoute/DesignR
 const requestCallback = require("./routes/formRoute/requestCallback");
 const eventForm = require("./routes/formRoute/eventForm");
 const serviceAndSupport = require("./routes/formRoute/serviceAndSupport");
+const ConstructionExpo = require("./routes/formRoute/ConstructionExpoRoute");
+const AnujCareers = require("./routes/formRoute/AnujCareersRoutes");
 const featureImage = require("./routes/productsDetailsRoute/FeatureImageRouter");
 const contactUs = require("./routes/ContactUsRouter/ContactUsRouter");
 const Banner = require("./routes/Banner/Banner");
@@ -110,6 +112,8 @@ app.use("/api/eventform", eventForm);
 app.use("/api/serviceAndSupportForm", serviceAndSupport);
 app.use("/api/catalog", catalog);
 app.use("/api/talkSpecialist", TalkSpecialist);
+app.use("/api/constructionExpo", ConstructionExpo);
+app.use("/api/anujCareers", AnujCareers);
 
 //awards
 app.use("/api/awards", Awards);

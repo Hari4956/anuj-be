@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const EventSchema = new mongoose.Schema(
+const ConstructionExpoSchema = new mongoose.Schema(
   {
     fullName: { type: String, required: true },
     phoneNumber: { type: String, required: true },
@@ -9,5 +9,8 @@ const EventSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Event = mongoose.model("EventForm", EventSchema);
-module.exports = Event;
+const ConstructionExpo = mongoose.model(
+  "ConstructionExpo",
+  ConstructionExpoSchema
+);
+module.exports = ConstructionExpo;

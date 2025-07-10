@@ -8,14 +8,8 @@ const createEvent = async (req, res) => {
       bodyFields[key.trim()] = req.body[key];
     });
 
-    const {
-      mainHeading,
-      place,
-      para,
-      date,
-      tableOfContent,
-      subContents,
-    } = bodyFields;
+    const { mainHeading, place, para, date, tableOfContent, subContents } =
+      bodyFields;
 
     // Validate required fields
     if (!mainHeading || !place || !para || !date) {
@@ -29,9 +23,13 @@ const createEvent = async (req, res) => {
     let parsedTableOfContent = [];
     if (tableOfContent) {
       parsedTableOfContent =
-        typeof tableOfContent === "string" ? JSON.parse(tableOfContent) : tableOfContent;
+        typeof tableOfContent === "string"
+          ? JSON.parse(tableOfContent)
+          : tableOfContent;
       if (!Array.isArray(parsedTableOfContent)) {
-        return res.status(400).json({ success: false, error: "tableOfContent must be an array" });
+        return res
+          .status(400)
+          .json({ success: false, error: "tableOfContent must be an array" });
       }
     }
 
@@ -42,14 +40,18 @@ const createEvent = async (req, res) => {
         typeof subContents === "string" ? JSON.parse(subContents) : subContents;
 
       if (!Array.isArray(parsedSubContents)) {
-        return res.status(400).json({ success: false, error: "subContents must be an array" });
+        return res
+          .status(400)
+          .json({ success: false, error: "subContents must be an array" });
       }
 
       // Prepare subImages mapping
       const subImagesMap = {}; // { '0': [img1, img2], '1': [img3] }
       if (req.files && req.files.length > 0) {
         req.files.forEach((file) => {
-          const match = file.fieldname.match(/subContents\[(\d+)]\[subImages]\[(\d+)]/);
+          const match = file.fieldname.match(
+            /subContents\[(\d+)]\[subImages]\[(\d+)]/
+          );
           if (match) {
             const subIndex = match[1];
             if (!subImagesMap[subIndex]) subImagesMap[subIndex] = [];
@@ -61,7 +63,9 @@ const createEvent = async (req, res) => {
       // Build final subContents
       processedSubContents = parsedSubContents.map((subContent, index) => {
         if (!subContent.pictureHeading || !subContent.pictureDescription) {
-          throw new Error("Each subContent must have pictureHeading and pictureDescription");
+          throw new Error(
+            "Each subContent must have pictureHeading and pictureDescription"
+          );
         }
         return {
           pictureHeading: subContent.pictureHeading,
@@ -97,7 +101,6 @@ const createEvent = async (req, res) => {
     });
   }
 };
-
 
 const getByEventId = async (req, res) => {
   try {
@@ -152,7 +155,9 @@ const getAllEvent = async (req, res) => {
       matchStage.createdAt = dateFilter;
     }
 
-    const filterStage = Object.keys(matchStage).length ? [{ $match: matchStage }] : [];
+    const filterStage = Object.keys(matchStage).length
+      ? [{ $match: matchStage }]
+      : [];
 
     const totalEvents = await EventPage.countDocuments(matchStage);
 
@@ -160,7 +165,7 @@ const getAllEvent = async (req, res) => {
       ...filterStage,
       { $sort: { createdAt: -1 } },
       { $skip: skip },
-      { $limit: limit }
+      { $limit: limit },
     ]);
 
     res.status(200).json({
@@ -170,20 +175,18 @@ const getAllEvent = async (req, res) => {
         totalItems: totalEvents,
         currentPage: page,
         totalPages: Math.ceil(totalEvents / limit),
-        pageSize: limit
-      }
+        pageSize: limit,
+      },
     });
-
   } catch (error) {
     console.error("Error fetching events:", error);
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
-      details: error.message
+      details: error.message,
     });
   }
 };
-
 
 const deleteEvent = async (req, res) => {
   try {
@@ -217,7 +220,8 @@ const deleteEvent = async (req, res) => {
 const updateEvent = async (req, res) => {
   const { id } = req.params;
   console.log(req.body);
-  let { mainHeading, place, para, date, tableOfContent, subContents } = req.body;
+  let { mainHeading, place, para, date, tableOfContent, subContents } =
+    req.body;
 
   try {
     const existingEvent = await EventPage.findById(id);
@@ -227,19 +231,23 @@ const updateEvent = async (req, res) => {
 
     // Parse JSON strings if needed
     if (typeof subContents === "string") subContents = JSON.parse(subContents);
-    if (typeof tableOfContent === "string") tableOfContent = JSON.parse(tableOfContent);
+    if (typeof tableOfContent === "string")
+      tableOfContent = JSON.parse(tableOfContent);
 
     // Update subContents and handle image replacement
     const updatedSubContents = subContents.map((sub, index) => {
       const existingSub = existingEvent.subContents[index] || {};
       const uploadedImages = (req.files || [])
-        .filter(file => file.fieldname === `subImages_${index}`)
-        .map(file => file.path);
+        .filter((file) => file.fieldname === `subImages_${index}`)
+        .map((file) => file.path);
 
       return {
         ...existingSub,
         ...sub,
-        subImages: uploadedImages.length > 0 ? uploadedImages : existingSub.subImages || [],
+        subImages:
+          uploadedImages.length > 0
+            ? uploadedImages
+            : existingSub.subImages || [],
       };
     });
 
@@ -248,11 +256,14 @@ const updateEvent = async (req, res) => {
     existingEvent.place = place || existingEvent.place;
     existingEvent.para = para || existingEvent.para;
     existingEvent.date = date || existingEvent.date;
-    existingEvent.tableOfContent = tableOfContent || existingEvent.tableOfContent;
+    existingEvent.tableOfContent =
+      tableOfContent || existingEvent.tableOfContent;
     existingEvent.subContents = updatedSubContents;
 
     // Replace main image if uploaded
-    const mainImgFile = (req.files || []).find(f => f.fieldname === "mainImage");
+    const mainImgFile = (req.files || []).find(
+      (f) => f.fieldname === "mainImage"
+    );
     if (mainImgFile) {
       existingEvent.mainImage = mainImgFile.path;
     }
@@ -263,13 +274,11 @@ const updateEvent = async (req, res) => {
       message: "Event updated successfully",
       event: updatedEvent,
     });
-
   } catch (error) {
     console.error("Update Error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 module.exports = {
   createEvent,
