@@ -24,6 +24,7 @@ const GetQuote = require("./routes/GetQuoteRoutes/GetQuoteRoutes");
 const Addcard = require("./routes/AddCardRoutes/AddCardRoutes");
 const catalog = require("./routes/formRoute/CatalogRoutes");
 const TalkSpecialist = require("./routes/formRoute/TalkSpecialist");
+const VideoLibrary = require("./routes/VideoLibraryRouter/VideoLibrary");
 const { createDefaultUser } = require("./models/auth/UserModel");
 dotenv.config();
 const path = require("path");
@@ -120,6 +121,9 @@ app.use("/api/awards", Awards);
 
 // aboutVideo
 app.use("/api/aboutVideo", AboutVideo);
+
+//videoLibrary
+app.use("/api/videoLibrary", VideoLibrary);
 
 // getQuote
 app.use("/api/getQuote", GetQuote);

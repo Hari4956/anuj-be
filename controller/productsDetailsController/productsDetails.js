@@ -78,33 +78,29 @@ const createTileProduct = async (req, res) => {
 
     // Now match from tile list
     const tiles = [
-      { piece: 12, size: "300x200", sqf: 0.646 },
-      { piece: 8, size: "375x250", sqf: 1.009 },
-      { piece: 4, size: "450x300", sqf: 2.18 },
-      { piece: 8, size: "450x300", sqf: 1.454 },
-      { piece: 4, size: "600x300", sqf: 3.27 },
-      { piece: 6, size: "600x300", sqf: 1.615 },
-      { piece: 4, size: "800x400", sqf: 3.445 },
-      { piece: 8, size: "300x300", sqf: 0.969 },
-      { piece: 6, size: "600x600", sqf: 2.583 },
-      { piece: 3, size: "800x800", sqf: 6.89 },
-      { piece: 2, size: "1200x600", sqf: 7.75 },
-      { piece: 2, size: "1200x600", sqf: 10.335 },
-      { piece: 2, size: "1600x800", sqf: 13.775 },
-      { piece: 2, size: "1800x1200", sqf: 11.625 },
-      { piece: 2, size: "1200x1200", sqf: 15.5 },
-      { piece: 1, size: "2400x1200", sqf: 31.0 },
-      { piece: 1, size: "1600x800", sqf: 20.67 },
-      { piece: 1, size: "2400x1200", sqf: 20.67 },
-      { piece: 2, size: "1200x600", sqf: 7.75 },
-      { piece: 3, size: "800x300", sqf: 3.443 },
-      { piece: 4, size: "1200x300", sqf: 2.905 },
-      { piece: 4, size: "900x300", sqf: 1.938 },
-      { piece: 4, size: "900x200", sqf: 1.938 },
+      { size: "300x200", sqf: 0.6458 },
+      { size: "375x250", sqf: 1.008 },
+      { size: "450x300", sqf: 1.453 },
+      { size: "600x300", sqf: 1.9375 },
+      { size: "800x400", sqf: 3.4445 },
+
+      { size: "300x300", sqf: 0.9688 },
+      { size: "600x600", sqf: 3.875 },
+      { size: "800x800", sqf: 6.889 },
+      { size: "1200x600", sqf: 7.75 },
+      { size: "1200x800", sqf: 10.333 },
+      { size: "1600x800", sqf: 13.778 },
+      { size: "1800x1200", sqf: 23.25 },
+      { size: "1200x1200", sqf: 15.5 },
+      { size: "2400x800", sqf: 20.667 },
+      { size: "2400x600", sqf: 15.5 },
+      { size: "1600x1200", sqf: 20.667 },
+      { size: "1200x300", sqf: 3.875 },
+      { size: "900x200", sqf: 1.9375 },
     ];
     const matchedTile = tiles.find((tile) => tile.size === sizeString);
-    const piece = matchedTile?.piece || 0;
     const sqf = matchedTile?.sqf || 0;
+    const pieces = req.body.pieces || 0;
 
     const product = new TileProduct({
       productID: req.body.productID,
@@ -113,7 +109,7 @@ const createTileProduct = async (req, res) => {
       name: req.body.name,
       series: req.body.series,
       size,
-      piece,
+      pieces: pieces,
       sqf,
       availability: req.body.availability,
       originalPrice: req.body.originalPrice,
@@ -279,9 +275,8 @@ const filtergetProducts = async (req, res) => {
       const sizes = parseFilter(size);
       const sizeConditions = [];
       for (const sizeItem of sizes) {
-        const cleanSize = String(sizeItem)
-          .replace(/\s/g, "")
-          .replace(/mm|cm|m/gi, "");
+        const cleanSize = String(sizeItem).replace(/\s/g, "");
+        // .replace(/mm|cm|m/gi, "");
         const [width, height] = cleanSize.split("x").map(Number);
         if (!isNaN(width) && !isNaN(height)) {
           sizeConditions.push({
@@ -389,8 +384,8 @@ const filtergetProducts = async (req, res) => {
 
     const totalCount = await TileProduct.aggregate([
       ...countPipeline,
-      { $count: "totalCount" },
       { $sort: { createdAt: -1 } },
+      { $count: "totalCount" },
     ]);
 
     const totalRecords = totalCount[0] ? totalCount[0].totalCount : 0;
@@ -578,11 +573,24 @@ const updateTileProduct = async (req, res) => {
       }
     }
 
-    // Convert and update boolean Trending
-    if (req.body.Trending !== undefined) {
-      product.Trending =
-        req.body.Trending === "true" || req.body.Trending === true;
+    const Exclusive =
+      req.body.Type?.toLowerCase() === "exclusive" || req.body.Type === true;
+    product.Type = Exclusive ? "Exclusive" : "Non Exclusive";
+
+    const trending =
+      req.body.Trending?.toLowerCase() === "trending" ||
+      req.body.Trending === true
+        ? "Trending"
+        : "Non Trending";
+    product.Trending = trending;
+
+    console.log(req.body.pieces);
+    const pieces = parseInt(req.body.pieces || 0);
+    if (!isNaN(pieces)) {
+      product.pieces = pieces;
     }
+
+    console.log("Parsed pieces:", product.pieces);
 
     // Update other direct fields
     product.productID = req.body.productID || product.productID;

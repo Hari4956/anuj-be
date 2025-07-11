@@ -12,7 +12,7 @@ const tileProductSchema = new mongoose.Schema(
       width: { type: Number, required: true },
       height: { type: Number, required: true },
     },
-    piece: { type: Number, default: 0 },
+    pieces: { type: Number, default: 0 },
     sqf: { type: Number, default: 0 },
     availability: { type: String },
     originalPrice: { type: Number },
