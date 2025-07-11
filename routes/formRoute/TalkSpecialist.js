@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const {
-    addTalkSpecialist,
-    getAllTalkSpecialist,
-    deleteTalkSpecialist
+  addTalkSpecialist,
+  getAllTalkSpecialist,
+  deleteTalkSpecialist,
 } = require("../../controller/formController/TalkSpecialist");
 
 router.post("/addTalkSpecialist", addTalkSpecialist);

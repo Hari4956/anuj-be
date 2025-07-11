@@ -2,6 +2,8 @@ const Anuj = require("../../models/formModel/AnujCareers");
 
 const createCareers = async (req, res) => {
   try {
+    console.log(req.body);
+
     const { fullName, phoneNumber, email, qualification } = req.body;
 
     if (!fullName || !phoneNumber || !qualification || !email) {
