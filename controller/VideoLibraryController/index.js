@@ -4,11 +4,10 @@ const AddVideoController = async (req, res) => {
   try {
     const { videoURl, title, date, minutes } = req.body;
     console.log("Received data for adding video:", req.body);
-    
+
     if (!videoURl || !title || !date || !minutes) {
       return res.status(400).json({ message: "All fields are required" });
     }
-
     const newVideo = new VideoLibrary({
       videoURl,
       title,
