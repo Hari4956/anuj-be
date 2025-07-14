@@ -85,6 +85,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 // User routes
 app.use("/api/user", userRouter);
+// createDefaultUser();
 
 // tileDetails
 app.use("/api/tileDetails", tilesDetails);
