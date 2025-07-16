@@ -14,6 +14,7 @@ const createBlog = async (req, res) => {
       date,
       tableOfContent,
       subContents,
+      type,
     } = bodyFields;
 
     // Validate required fields
@@ -21,6 +22,22 @@ const createBlog = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: "All main fields are required.",
+      });
+    }
+
+    const typeItems = [
+      "Floor Tiles",
+      "Wall Tiles",
+      "Counter top",
+      "colours",
+      "pattern",
+    ];
+
+    if (!typeItems.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "type must be one of the following: Floor Tiles, Wall Tiles, Counter top, colours, pattern",
       });
     }
 
@@ -55,14 +72,18 @@ const createBlog = async (req, res) => {
         typeof subContents === "string" ? JSON.parse(subContents) : subContents;
 
       if (!Array.isArray(parsedSubContents)) {
-        return res.status(400).json({ success: false, error: "subContents must be an array" });
+        return res
+          .status(400)
+          .json({ success: false, error: "subContents must be an array" });
       }
 
       // Prepare subImages mapping
       const subImagesMap = {}; // { '0': [img1, img2], '1': [img3] }
       if (req.files && req.files.length > 0) {
         req.files.forEach((file) => {
-          const match = file.fieldname.match(/subContents\[(\d+)]\[subImages]\[(\d+)]/);
+          const match = file.fieldname.match(
+            /subContents\[(\d+)]\[subImages]\[(\d+)]/
+          );
           if (match) {
             const subIndex = match[1];
             if (!subImagesMap[subIndex]) subImagesMap[subIndex] = [];
@@ -74,7 +95,9 @@ const createBlog = async (req, res) => {
       // Build final subContents
       processedSubContents = parsedSubContents.map((subContent, index) => {
         if (!subContent.pictureHeading || !subContent.pictureDescription) {
-          throw new Error("Each subContent must have pictureHeading and pictureDescription");
+          throw new Error(
+            "Each subContent must have pictureHeading and pictureDescription"
+          );
         }
         return {
           pictureHeading: subContent.pictureHeading,
@@ -92,6 +115,7 @@ const createBlog = async (req, res) => {
       date,
       tableOfContent: parsedTableOfContent,
       subContents: processedSubContents,
+      type,
     });
 
     await newBlog.save();
@@ -166,7 +190,9 @@ const getAllBlogs = async (req, res) => {
       matchStage.createdAt = dateFilter;
     }
 
-    const filterStage = Object.keys(matchStage).length ? [{ $match: matchStage }] : [];
+    const filterStage = Object.keys(matchStage).length
+      ? [{ $match: matchStage }]
+      : [];
 
     const totalEvents = await BlogPage.countDocuments(matchStage);
 
@@ -174,7 +200,7 @@ const getAllBlogs = async (req, res) => {
       ...filterStage,
       { $sort: { createdAt: -1 } },
       { $skip: skip },
-      { $limit: limit }
+      { $limit: limit },
     ]);
 
     res.status(200).json({
@@ -184,8 +210,8 @@ const getAllBlogs = async (req, res) => {
         totalItems: totalEvents,
         currentPage: page,
         totalPages: Math.ceil(totalEvents / limit),
-        pageSize: limit
-      }
+        pageSize: limit,
+      },
     });
   } catch (error) {
     console.error("Error fetching blogs:", error);
@@ -227,7 +253,8 @@ const deleteBlogById = async (req, res) => {
 const updateBlog = async (req, res) => {
   const { id } = req.params;
   console.log(req.body);
-  let { mainHeading, place, para, date, tableOfContent, subContents } = req.body;
+  let { mainHeading, place, para, date, tableOfContent, subContents } =
+    req.body;
 
   try {
     const existingBlog = await BlogPage.findById(id);
@@ -237,18 +264,22 @@ const updateBlog = async (req, res) => {
 
     // Parse JSON strings if needed
     if (typeof subContents === "string") subContents = JSON.parse(subContents);
-    if (typeof tableOfContent === "string") tableOfContent = JSON.parse(tableOfContent);
+    if (typeof tableOfContent === "string")
+      tableOfContent = JSON.parse(tableOfContent);
 
     const updatedSubContents = subContents.map((sub, index) => {
       const existingSub = existingBlog.subContents[index] || {};
       const uploadedImages = (req.files || [])
-        .filter(file => file.fieldname === `subImages_${index}`)
-        .map(file => file.path);
+        .filter((file) => file.fieldname === `subImages_${index}`)
+        .map((file) => file.path);
 
       return {
         ...existingSub,
         ...sub,
-        subImages: uploadedImages.length > 0 ? uploadedImages : existingSub.subImages || [],
+        subImages:
+          uploadedImages.length > 0
+            ? uploadedImages
+            : existingSub.subImages || [],
       };
     });
 
@@ -261,7 +292,9 @@ const updateBlog = async (req, res) => {
     existingBlog.subContents = updatedSubContents;
 
     // Replace main image if uploaded
-    const mainImgFile = (req.files || []).find(f => f.fieldname === "mainImage");
+    const mainImgFile = (req.files || []).find(
+      (f) => f.fieldname === "mainImage"
+    );
     if (mainImgFile) {
       existingBlog.mainImage = mainImgFile.path;
     }
@@ -272,7 +305,6 @@ const updateBlog = async (req, res) => {
       message: "blog updated successfully",
       event: updatedBlog,
     });
-
   } catch (error) {
     console.error("Update Error:", error);
     res.status(500).json({ message: "Internal server error" });

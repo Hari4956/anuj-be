@@ -85,33 +85,30 @@ const deleteDesignRecommendationById = async (req, res) => {
 
 const getDesignRecommendations = async (req, res) => {
   try {
-    const { fromDate, toDate } = req.query;
+    const { fromDate, toDate, tileType } = req.query;
     const page = parseInt(req.query.page) || 1;
     const limit = Number(req.query.limit) || 8;
     const skip = (page - 1) * limit;
 
-    // Match stage for filtering
     const matchStage = {};
 
     if (fromDate || toDate) {
       const dateFilter = {};
-
-      if (fromDate) {
-        dateFilter.$gte = new Date(fromDate);
-      }
-
+      if (fromDate) dateFilter.$gte = new Date(fromDate);
       if (toDate) {
         const to = new Date(toDate);
-        to.setHours(23, 59, 59, 999); // ✅ Include full toDate
+        to.setHours(23, 59, 59, 999);
         dateFilter.$lte = to;
       }
-
       matchStage.createdAt = dateFilter;
+    }
+
+    if (tileType) {
+      matchStage.tileType = tileType;
     }
 
     const pipeline = [];
 
-    // Apply filter if matchStage exists
     if (Object.keys(matchStage).length > 0) {
       pipeline.push({ $match: matchStage });
     }
@@ -139,7 +136,6 @@ const getDesignRecommendations = async (req, res) => {
       }
     );
 
-    // Fetch data and total count
     const [recommendations, totalCount] = await Promise.all([
       DesignRecommendation.aggregate(pipeline),
       DesignRecommendation.countDocuments(matchStage),
