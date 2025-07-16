@@ -6,6 +6,8 @@ const createBlog = async (req, res) => {
     Object.keys(req.body).forEach((key) => {
       bodyFields[key.trim()] = req.body[key];
     });
+    console.log(req.body);
+    console.log(req.body.readTime);
 
     const {
       mainHeading,
@@ -15,6 +17,7 @@ const createBlog = async (req, res) => {
       tableOfContent,
       subContents,
       type,
+      readTime,
     } = bodyFields;
 
     // Validate required fields
@@ -25,6 +28,15 @@ const createBlog = async (req, res) => {
       });
     }
 
+    if (readTime) {
+      if (typeof readTime !== "string") {
+        return res.status(400).json({
+          success: false,
+          error: "Read Time must be at least 3 characters long",
+        });
+      }
+    }
+
     const typeItems = [
       "Floor Tiles",
       "Wall Tiles",
@@ -33,11 +45,11 @@ const createBlog = async (req, res) => {
       "pattern",
     ];
 
-    if (!typeItems.includes(type)) {
+    const cleanType = type?.trim();
+    if (!typeItems.includes(cleanType)) {
       return res.status(400).json({
         success: false,
-        error:
-          "type must be one of the following: Floor Tiles, Wall Tiles, Counter top, colours, pattern",
+        error: `Invalid type. Must be one of: ${typeItems.join(", ")}`,
       });
     }
 
@@ -115,7 +127,8 @@ const createBlog = async (req, res) => {
       date,
       tableOfContent: parsedTableOfContent,
       subContents: processedSubContents,
-      type,
+      type: cleanType,
+      readTime,
     });
 
     await newBlog.save();
@@ -163,7 +176,7 @@ const getByBlogId = async (req, res) => {
 
 const getAllBlogs = async (req, res) => {
   try {
-    const { fromDate, toDate } = req.query;
+    const { fromDate, toDate, type } = req.query;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 6;
     const skip = (page - 1) * limit;
@@ -180,14 +193,20 @@ const getAllBlogs = async (req, res) => {
 
     const matchStage = {};
 
+    // Date range filter
     if (from || to) {
       const dateFilter = {};
       if (from) dateFilter.$gte = from;
       if (to) {
-        to.setHours(23, 59, 59, 999);
+        to.setHours(23, 59, 59, 999); // Include the full day
         dateFilter.$lte = to;
       }
       matchStage.createdAt = dateFilter;
+    }
+
+    // Type filter (case-insensitive, trimmed)
+    if (type) {
+      matchStage.type = { $regex: `^${type.trim()}$`, $options: "i" };
     }
 
     const filterStage = Object.keys(matchStage).length
@@ -252,9 +271,17 @@ const deleteBlogById = async (req, res) => {
 
 const updateBlog = async (req, res) => {
   const { id } = req.params;
-  console.log(req.body);
-  let { mainHeading, place, para, date, tableOfContent, subContents } =
-    req.body;
+  console.log(req.body.type);
+  let {
+    mainHeading,
+    place,
+    para,
+    date,
+    type,
+    readTime,
+    tableOfContent,
+    subContents,
+  } = req.body;
 
   try {
     const existingBlog = await BlogPage.findById(id);
@@ -286,8 +313,10 @@ const updateBlog = async (req, res) => {
     // Update text fields
     existingBlog.mainHeading = mainHeading || existingBlog.mainHeading;
     existingBlog.place = place || existingBlog.place;
+    existingBlog.type = type || existingBlog.type;
     existingBlog.para = para || existingBlog.para;
     existingBlog.date = date || existingBlog.date;
+    existingBlog.readTime = readTime || existingBlog.readTime;
     existingBlog.tableOfContent = tableOfContent || existingBlog.tableOfContent;
     existingBlog.subContents = updatedSubContents;
 
