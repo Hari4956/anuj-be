@@ -67,6 +67,10 @@ app.use(
   "/Restroom_Build",
   express.static(path.join(__dirname, "builds/Restroom_build"))
 );
+app.use(
+  "/Parking_Build",
+  express.static(path.join(__dirname, "builds/Parking_Build"))
+);
 // Middleware
 app.use(
   cors({
